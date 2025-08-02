@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"jj/tools"
 	"strings"
+
+	"github.com/monopolly/jsonsgenerator/tools"
 )
 
 // func (a *SQL) StructToPackage() []byte {

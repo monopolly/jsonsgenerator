@@ -1,8 +1,9 @@
 package main
 
 import (
-	"jj/tools"
 	"strings"
+
+	"github.com/monopolly/jsonsgenerator/tools"
 )
 
 // goStruct, sqlClassName

@@ -3,8 +3,9 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"jj/tools"
 	"strings"
+
+	"github.com/monopolly/jsonsgenerator/tools"
 )
 
 func (a *SQL) UpdateJsonb() []byte {

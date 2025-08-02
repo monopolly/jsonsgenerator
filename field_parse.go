@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"jj/tools"
+	"github.com/monopolly/jsonsgenerator/tools"
 	"strings"
 )
 

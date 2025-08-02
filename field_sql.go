@@ -1,7 +1,7 @@
 package main
 
 import (
-	"jj/tools"
+	"github.com/monopolly/jsonsgenerator/tools"
 	"strings"
 )
 

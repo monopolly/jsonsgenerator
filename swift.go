@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"jj/tools"
 	"path/filepath"
 	"strings"
+
+	"github.com/monopolly/jsonsgenerator/tools"
 )
 
 func generateSwiftFiles() (files map[string][]byte) {
