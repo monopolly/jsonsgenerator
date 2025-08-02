@@ -1,0 +1,500 @@
+package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+// parse sql
+/* func generateSQLParse() []byte {
+	//func (a *EventStruct) ParseSQL(row pgx.Row) (err error) { return row.Scan(&a.ID, &a.UID, &a.Public, &a.Title, &a.Untils, &a.Geoid, &a.Image)}
+
+	//список
+	var list []string
+	list = append(list, "\n//sql parse all struct with pgx")
+	list = append(list, fmt.Sprintf(`func (a *%s) ParseSQL(row pgx.Row) (err error) {`, settings.Go.Name))
+
+	var vars []string
+	for _, x := range fields {
+		vars = append(vars, "&a."+x.Title)
+	}
+
+	list = append(list, fmt.Sprintf(`return row.Scan(%s)`, strings.Join(vars, ",\n")))
+
+	list = append(list, "}\n")
+	return []byte(strings.Join(list, "\n"))
+} */
+
+// insert sql query
+func generateSQLTableName() []byte {
+
+	var list []string
+	list = append(list, "\n//get sql table name")
+	list = append(list, fmt.Sprintf(`func (a *%s) SQLTableName() string {`, settings.Go.StructName))
+	list = append(list, fmt.Sprintf(`return "%s"`, settings.SQL.Table))
+	list = append(list, "}\n")
+
+	return []byte(strings.Join(list, "\n"))
+}
+
+// insert sql query
+func generateSQLInsert() []byte {
+
+	var list []string
+	list = append(list, "\n//build sql insert query")
+	list = append(list, fmt.Sprintf(`func (a *%s) InsertSQL(tablename ...string) (query string) {`, settings.Go.StructName))
+	list = append(list, "table := a.SQLTableName()")
+	list = append(list, "if tablename != nil{")
+	list = append(list, `table = tablename[0]`)
+	list = append(list, "}")
+
+	//`insert into users (id, login) values ($1, $2)`
+
+	var flist []string
+	var vars []string
+	var pos int
+	for _, x := range fields {
+		if x.SQL.NoInsert || x.SQL.Skip {
+			continue
+		}
+		pos++
+		vars = append(vars, fmt.Sprintf("$%d", pos))
+		flist = append(flist, x.SQL.Name)
+	}
+	list = append(list, fmt.Sprintf(`query = "insert into " + table + " (%s) "`, strings.Join(flist, ", ")))
+	list = append(list, fmt.Sprintf(`query += " values (%s)"`, strings.Join(vars, ", ")))
+	list = append(list, "return")
+	list = append(list, "}\n")
+
+	return []byte(strings.Join(list, "\n"))
+}
+
+// parse any sql query
+func generateGetFullSQLQuery() []byte {
+
+	var list []string
+	list = append(list, "\n//sql get query")
+	list = append(list, fmt.Sprintf(`func SQLGetFull%s(conn *pgxpool.Conn, c context.Context, id any) (a *%s, err error) {`, settings.Go.StructName, settings.Go.StructName))
+
+	list = append(list, fmt.Sprintf(`q := "select * from %s where id = $1 limit 1"`, settings.SQL.Table))
+	list = append(list, fmt.Sprintf(`a = new(%s)`, settings.Go.StructName))
+
+	var r []string
+	for _, x := range fields {
+		r = append(r, fmt.Sprintf("&a.%s", x.Go.Name))
+	}
+	list = append(list, fmt.Sprintf("err = conn.QueryRow(c, q, id).Scan(%s)", strings.Join(r, ",")))
+	list = append(list, `	
+	if err != nil {
+		return
+	}
+	`)
+
+	list = append(list, "return}")
+	return []byte(strings.Join(list, "\n"))
+}
+
+// get list
+func generateGetSQLQuery() []byte {
+
+	var list []string
+	list = append(list, "\n//parse sql query")
+	list = append(list, fmt.Sprintf(`func SQLGet%s(conn *pgxpool.Conn, c context.Context, id any, fields ...%s) (a *%s, err error) {`, settings.Go.StructName, settings.IndexTypeName, settings.Go.StructName))
+
+	list = append(list, fmt.Sprintf(`if fields == nil{
+		return SQLGetFull%s(conn, c, id)
+	}`, settings.Go.StructName))
+
+	list = append(list, `
+		var list []string
+		for _,x:=range fields{
+			list = append(list, x.SQLName())
+		}
+		fieldlist := strings.Join(list, ", ")
+	`)
+	list = append(list, `q := fmt.Sprintf("select %s ", fieldlist)`)
+	list = append(list, fmt.Sprintf(`q = q + "from %s where id = $1 limit 1"`, settings.SQL.Table))
+	list = append(list, fmt.Sprintf(`a = new(%s)`, settings.Go.StructName))
+
+	list = append(list, `rows, err := conn.Query(c, q, id)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	rows.Next()
+	v, err := rows.Values()
+	if err != nil {
+		return
+	}
+	if len(v) != len(fields){
+		err = fmt.Errorf("len")
+		return
+	}
+	for pos, x := range fields {
+		a.Update(x.String(), v[pos])
+	}`)
+
+	list = append(list, "return}")
+	return []byte(strings.Join(list, "\n"))
+}
+
+// get list
+func generateGetListSQLQuery() []byte {
+
+	var list []string
+	list = append(list, "\n//parse sql query, 'appendsql' append after tablename...")
+	list = append(list, "//example: `where id = 1 and login = 'nice' order by id desc`")
+	list = append(list, fmt.Sprintf(`func SQLGetListFields%s(conn *pgxpool.Conn, c context.Context, limit, offset int, appendsql string, fields ...%s) (res []*%s, err error) {`, settings.Go.StructName, settings.IndexTypeName, settings.Go.StructName))
+
+	list = append(list, `
+		var list []string
+		for _,x:=range fields{
+			list = append(list, x.SQLName())
+		}
+		fieldlist := strings.Join(list, ", ")
+	`)
+	list = append(list, `q := fmt.Sprintf("select %s", fieldlist)`)
+	list = append(list, fmt.Sprintf(`q = q + " from %s"`, settings.SQL.Table))
+	list = append(list, `q = q + fmt.Sprintf(" %s limit $1 offset $2", appendsql) `)
+	// list = append(list, fmt.Sprintf(`a = new(%s)`, settings.Go.Name))
+
+	list = append(list, fmt.Sprintf(`rows, err := conn.Query(c, q, limit, offset)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var item %s
+		v, err := rows.Values()
+		if err != nil {
+			continue
+		}
+		if len(v) != len(fields){
+			err = fmt.Errorf("len")
+			continue
+		}
+		for pos, x := range fields {
+			item.Update(x.String(), v[pos])
+		}
+		res = append(res, &item)
+	}
+	
+	`, settings.Go.StructName),
+	)
+
+	list = append(list, "return}")
+	return []byte(strings.Join(list, "\n"))
+}
+
+// update field
+func generateUpdateSQLQuery() []byte {
+
+	var list []string
+	list = append(list, "\n//update sql query")
+	list = append(list, fmt.Sprintf(`func SQLUpdate%s(conn *pgxpool.Conn, c context.Context, id any, k %s, v any) (err error) {`, settings.Go.StructName, settings.IndexTypeName))
+
+	inits := fmt.Sprintf("update %s set", settings.SQL.Table)
+	list = append(list, `q := fmt.Sprintf("`+inits+` %s = $1 where id = $2", k.SQLName())`)
+
+	list = append(list, fmt.Sprintf(`_,err = conn.Exec(c, q, v, id)`))
+	list = append(list, "return")
+	list = append(list, "}")
+	return []byte(strings.Join(list, "\n"))
+}
+
+// update jsob map
+func generateUpdateJsonbMapSQLQuery() []byte {
+
+	var list []string
+	list = append(list, "\n//update sql query")
+	list = append(list, fmt.Sprintf(`func SQLUpdateJsonbMap%s(conn *pgxpool.Conn, c context.Context, id any, field %s, k string, v any) (err error) {`, settings.Go.StructName, settings.IndexTypeName))
+
+	inits := fmt.Sprintf("update %s set", settings.SQL.Table)
+
+	list = append(list, `//json escape`)
+	list = append(list, `res := strings.ReplaceAll(jsons.Creates(k, v).String(), "$$", "$ $")`)
+
+	list = append(list, `q := fmt.Sprintf("`+inits+` %[1]s = %[1]s || $$%[2]s$$::jsonb where id = $1", field.SQLName(), res)`)
+
+	list = append(list, fmt.Sprintf(`_,err = conn.Exec(c, q, id)`))
+	list = append(list, "return")
+	list = append(list, "}")
+	return []byte(strings.Join(list, "\n"))
+}
+
+func generateSQLStructToPackage() []byte {
+
+	var list []string
+	list = append(list, "\n//get table sql struct")
+	list = append(list, fmt.Sprintf(`func (a *%s) SQLTableStructure() (sql string) {`, settings.Go.StructName))
+	list = append(list, fmt.Sprintf("return `%s`", string(generateSQLStruct())))
+	list = append(list, "\n}")
+	return []byte(strings.Join(list, "\n"))
+}
+
+// insert sql query
+func generateSQLStruct() []byte {
+
+	/* 	id      	bigint primary key,
+		login   	text unique,
+		created 	bigint,
+		updated 	bigint,
+		name    	text,
+		line    	text,
+		body  		text, --description
+		image   	text,
+		lang    	text,
+		country    	text,
+		city    	text,
+		sex 		int, -- 0 female, 1 male, null - nothing
+		geoid    	bigint,
+		tz			text,
+		verify  	boolean default false,
+	  	meta    	jsonb default '{}'::jsonb */
+
+	var list, fieldList, primary []string
+	unique := make(map[string]map[string]bool)
+
+	table := settings.Origin
+	if settings.SQL.Table != "" {
+		table = settings.SQL.Table
+	}
+
+	//list = append(list, fmt.Sprintf(`drop table if exists %s;`, table))
+	list = append(list, fmt.Sprintf(`--drop table %s;`, table))
+	list = append(list, fmt.Sprintf(`create table if not exists %s (`, table))
+
+	var indexes []string
+	indexgroup := map[string]map[string]bool{}
+	indexsearch := map[string]map[string]bool{}
+
+	for _, x := range fields {
+		if x.SQL.Skip {
+			continue
+		}
+
+		if x.SQL.Primary {
+			primary = append(primary, x.SQL.Name)
+		}
+
+		// fields
+		var SQLType string
+		var SQLDefault string
+		switch x.Type {
+		case "int", "int64", "uint", "uint64", "time.Duration":
+			SQLType = "bigint"
+		case "int16", "int32", "uint32":
+			SQLType = "int"
+		case "int8", "uint8":
+			SQLType = "smallint"
+		case "float64", "float32":
+			SQLType = "double precision"
+		case "bool":
+			SQLType = "boolean"
+		case "string":
+			SQLType = "text"
+		default:
+			SQLType = "jsonb"
+			SQLDefault = "default '{}'::jsonb"
+		}
+
+		if strings.HasPrefix(x.Type, "[]") {
+			SQLType = "jsonb"
+			SQLDefault = "default '[]'::jsonb"
+		}
+
+		if strings.HasPrefix(x.Type, "[]byte") {
+			SQLType = "bytea"
+		}
+
+		if strings.HasPrefix(x.Type, "map[") {
+			SQLType = "jsonb"
+			SQLDefault = "default '{}'::jsonb"
+		}
+
+		if x.SQL.Type != "" {
+			SQLType = x.SQL.Type
+			SQLDefault = ""
+		}
+
+		switch SQLType {
+		case "jsonb":
+			// jsonb indexes
+			// create index on film using gin(special_features);
+			if x.SQL.Index.Simple {
+				indexname := fmt.Sprintf("gin_%s_%s", settings.Origin, x.SQL.Name)
+				indexes = append(indexes, fmt.Sprintf("--drop index %s;", indexname))
+				indexes = append(indexes, fmt.Sprintf("--ex: select * from %s where (%s->>'year')::int >= 2020;", settings.SQL.Table, x.SQL.Name))
+				indexes = append(indexes, fmt.Sprintf("create index if not exists %s on %s using gin(%s);\n", indexname, settings.SQL.Table, x.SQL.Name))
+			}
+		default:
+			// simple indexes
+			if x.SQL.Index.Simple {
+				indexname := fmt.Sprintf("idx_%s_%s", settings.Origin, x.SQL.Name)
+				indexes = append(indexes, fmt.Sprintf("--drop index %s;", indexname))
+				indexes = append(indexes, fmt.Sprintf("create index if not exists %s on %s (%s);\n", indexname, settings.SQL.Table, x.SQL.Name))
+			}
+		}
+
+		for _, groupname := range x.SQL.Index.Group {
+			if indexgroup[groupname] == nil {
+				indexgroup[groupname] = make(map[string]bool)
+			}
+			indexgroup[groupname][x.SQL.Name] = true
+		}
+
+		for _, groupname := range x.SQL.Index.Search {
+			if indexsearch[groupname] == nil {
+				indexsearch[groupname] = make(map[string]bool)
+			}
+			indexsearch[groupname][x.SQL.Name] = true
+		}
+
+		// unique constrains tag
+		for _, k := range x.SQL.Unique {
+			if unique[k] == nil {
+				unique[k] = map[string]bool{}
+			}
+			unique[k][x.SQL.Name] = true
+		}
+
+		var sqlFieldLine []string
+
+		switch x.SQL.Inc {
+		case true:
+			sqlFieldLine = append(sqlFieldLine, "bigserial primary key")
+		case false:
+			switch x.SQL.Replace != "" {
+			case true:
+				sqlFieldLine = append(sqlFieldLine, x.SQL.Replace)
+			case false:
+				sqlFieldLine = append(sqlFieldLine, SQLType)
+			}
+		}
+
+		if x.SQL.Append != "" {
+			sqlFieldLine = append(sqlFieldLine, x.SQL.Append)
+		}
+
+		switch x.SQL.Default.Unixtime {
+		case true:
+			sqlFieldLine = append(sqlFieldLine, "default extract(epoch from now())")
+		case false:
+			switch x.SQL.Default.Simple {
+			case true:
+				sqltype := x.Type
+				if x.SQL.Type != "" {
+					sqltype = x.SQL.Type
+				}
+				switch sqltype {
+				case "float64", "float32", "int8", "uint8", "int", "int64", "uint", "uint64", "time.Duration", "int16", "int32", "uint32":
+					sqlFieldLine = append(sqlFieldLine, "default 0")
+				case "bool":
+					sqlFieldLine = append(sqlFieldLine, "default false")
+				case "string":
+					sqlFieldLine = append(sqlFieldLine, "default ''")
+				case "jsonb":
+					switch SQLDefault != "" {
+					case true:
+						sqlFieldLine = append(sqlFieldLine, SQLDefault)
+					default:
+						sqlFieldLine = append(sqlFieldLine, "default '{}'::jsonb")
+					}
+				}
+			case false:
+				if SQLType == "jsonb" {
+					switch SQLDefault != "" {
+					case true:
+						sqlFieldLine = append(sqlFieldLine, SQLDefault)
+					default:
+						sqlFieldLine = append(sqlFieldLine, "default '{}'::jsonb")
+					}
+				}
+
+			}
+
+		}
+
+		sqltype := formatline("\t"+x.SQL.Name, strings.Join(sqlFieldLine, " "))
+		fieldList = append(fieldList, sqltype)
+
+	}
+
+	// search index tsvector
+	for groupname, fieldslist := range indexsearch {
+		var names []string
+		for name := range fieldslist {
+			names = append(names, name)
+		}
+		// fieldList = append(fieldList, fmt.Sprintf("\t%s \ttsvector generated always as (to_tsvector('simple', %s)) stored", groupname, strings.Join(names, " || ' ' || ")))
+		fieldList = append(fieldList, formatline("\t"+groupname, fmt.Sprintf("tsvector generated always as (to_tsvector('simple', %s)) stored", strings.Join(names, " || ' ' || "))))
+		indexname := fmt.Sprintf("gin_%s_%s", settings.Origin, groupname)
+		indexes = append(indexes, fmt.Sprintf("--drop index %s;", indexname))
+		indexes = append(indexes, fmt.Sprintf("--ex: select * from %s where %s @@ to_tsquery('f8');", settings.SQL.Table, groupname))
+		// CREATE INDEX ts_idx ON certificate USING GIN (to_tsvector('english', text));
+		indexes = append(indexes, fmt.Sprintf("create index if not exists %s on %s using gin(%s);\n", indexname, settings.SQL.Table, groupname))
+	}
+
+	// unique constrains
+	for _, fieldnames := range unique {
+		var untag []string
+		for fieldname := range fieldnames {
+			untag = append(untag, fieldname)
+		}
+		fieldList = append(fieldList, fmt.Sprintf("\tunique(%s)", strings.Join(untag, ",")))
+	}
+
+	// primary keys
+	if primary != nil {
+		fieldList = append(fieldList, fmt.Sprintf("\tprimary key (%s)", strings.Join(primary, ",")))
+	}
+
+	list = append(list, strings.Join(fieldList, ",\n"))
+	list = append(list, ");\n")
+
+	if indexes != nil {
+		list = append(list, "--generated indexes")
+		list = append(list, indexes...)
+	}
+
+	// simple index
+	for groupname, fieldlist := range indexgroup {
+		var names []string
+		for name := range fieldlist {
+			names = append(names, name)
+		}
+		indexname := fmt.Sprintf("idx_%s_%s", settings.Origin, groupname)
+		list = append(list, fmt.Sprintf("--drop index %s;", indexname))
+		list = append(list, fmt.Sprintf("create index if not exists %s on %s (%s);\n", indexname, settings.SQL.Table, strings.Join(names, ",")))
+	}
+
+	return []byte(strings.Join(list, "\n"))
+}
+
+// парсер для изначальной структуры в []intefacr{}
+func generateParserStructToSQLInsertTuple() []byte {
+
+	lines := []string{
+		"\n",
+		"//Tuple create an array for sql insert",
+		fmt.Sprintf("func (a *%s) SQLInsertTuple() (r []any){ ", settings.Go.StructName),
+	} //
+
+	var fieldstrings []string
+	for _, x := range fields {
+		if x.SQL.NoInsert || x.SQL.Skip {
+			continue
+		}
+		fieldstrings = append(fieldstrings, fmt.Sprintf(`a.%s`, x.Go.Name))
+		//lines = append(lines, fmt.Sprintf(`r[%s] = a.%s`, x.Go.Index, x.Title))
+	}
+
+	s := fmt.Sprintf(`return []any{%s}`, strings.Join(fieldstrings, ","))
+
+	lines = append(lines, s)
+	lines = append(lines, "}\n")
+
+	return []byte(strings.Join(lines, "\n"))
+
+}
