@@ -5,7 +5,7 @@ import (
 )
 
 // insert sql query
-func DetectSQLType(x *Field) {
+func GoTypeToSQLType(x *Field) {
 
 	// detect sql type
 	switch x.Type {
@@ -13,13 +13,13 @@ func DetectSQLType(x *Field) {
 		x.SQL.Type = "bigint"
 	case "int16", "int32", "uint32":
 		x.SQL.Type = "int"
-	case "int8", "uint8":
+	case "int8", "uint8", "byte":
 		x.SQL.Type = "smallint"
 	case "float64", "float32":
 		x.SQL.Type = "double precision"
 	case "bool":
 		x.SQL.Type = "boolean"
-	case "string", "byte":
+	case "string":
 		x.SQL.Type = "text"
 	case "[]byte", "[]int8", "[]uint8":
 		x.SQL.Type = "bytea"

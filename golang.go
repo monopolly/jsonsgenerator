@@ -13,9 +13,11 @@ func (a *Golang) Generate() []byte {
 
 	res.Write(a.Index())
 	res.Write(a.Struct())
+	res.Write(a.New())
 	res.Write(a.TupleToStruct())
 	res.Write(a.IDStructToTuple())
 	res.Write(a.SQLStructToTuple())
+	res.Write(a.SQLAllStructToTuple())
 	res.Write(a.Update())
 	res.Write(a.Get())
 	res.Write(a.GetString())

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 var helps = NewHelp()
@@ -14,13 +15,14 @@ func NewHelp() (a *Help) {
 }
 
 type Help struct {
-	Struct map[string]string //value
-	Golang map[string]string
-	Field  map[string]string
-	JS     map[string]string
-	Swift  map[string]string
-	SQL    map[string]string
-	Custom map[string]map[string]string
+	Struct     map[string]string //value
+	Golang     map[string]string
+	Field      map[string]string
+	JS         map[string]string
+	Swift      map[string]string
+	SQL        map[string]string
+	Clickhouse map[string]string
+	Custom     map[string]map[string]string
 }
 
 func (a *Help) init() (b *Help) {
@@ -30,6 +32,7 @@ func (a *Help) init() (b *Help) {
 	a.JS = make(map[string]string)
 	a.Swift = make(map[string]string)
 	a.SQL = make(map[string]string)
+	a.Clickhouse = make(map[string]string)
 	a.Custom = make(map[string]map[string]string)
 	return a
 }
@@ -47,7 +50,8 @@ func (a *Help) Render() (res []byte) {
 	list = append(list, "/*")
 	list = append(list, "Auto-generate. Do not change!")
 	list = append(list, "Help to auto-generated correct models for golang structures.")
-	list = append(list, "Sergey Keplin (c) 2025")
+	list = append(list, fmt.Sprintf("Sergey Keplin (c) %d", time.Now().Year()))
+	list = append(list, "a@senthy.com, lava.mobi@gmail.com, https://t.me/martinprestone")
 	list = append(list, "github.com/monopolly/jsons")
 	list = append(list, "Ex: //! [] go=News js=NewsJson sql=news noinit up...")
 	list = append(list, "")
@@ -79,7 +83,14 @@ func (a *Help) Render() (res []byte) {
 		list = append(list, Status(k, v))
 	}
 
-	// sql
+	// clickhouse
+	list = append(list, "")
+	list = append(list, "Clickhouse:")
+	for k, v := range a.Clickhouse {
+		list = append(list, Status(k, v))
+	}
+
+	// swift
 	list = append(list, "")
 	list = append(list, "SWIFT:")
 	for k, v := range a.Swift {

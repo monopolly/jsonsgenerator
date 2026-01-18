@@ -1,27 +1,53 @@
 type news = {
-	id                                            :number // int sql{inc name="newid"} go{title="Account ID" name="AccountID" must}  #readonly
-	created                                       :number // int64 #readonly js{time} sql{unix name="createdNew"}
-	count                                         :number // int64 js{name="money"} title{NewTitleCount}
-	active                                        :boolean // bool go{must} js{bool} swift{must} sql{default}
-	kyc                                           :boolean // bool go{up} sql{type="newtype"} desc{KYC use for account validation}
-	bid                                           :number // uint64 sql{skip} swift{skip} js{skip}
-	oid                                           :number // int sql{unique="1" idx="i1"}
-	type                                          :number // int sql{index idx="i1" idx="i2"}
-	verify                                        :boolean // bool js{name="verified"}
-	title                                         :string // string sql{search="search"} go{must}
-	html                                          :string // []byte sql{unique="1"}
-	tags                                          :string[] // []string sql{unique="2"}
-	channels                                      :number[] // []int sql{unique="1", unique="2"}
-	channels64                                    :number[] // []int64 go{must}
-	floats                                        :number // float64 go{must} sql{primarykey}
-	keys                                          :Record<string, string> // map[string]string go{must} sql{primarykey}
-	features                                      :Record<string, boolean> // map[string]bool go{must} sql{primarykey}
-	likes                                         :Record<string, number> // map[string]int go{must}
-	providers                                     :Record<string, number> // map[int]string go{must}
-	stats                                         :Record<string, number> // map[int]int go{must}
-	price                                         :Record<string, number> // map[string]float64 go{must}
-	meta                                          :Record<string, any> // map[string]any sql{index}
-	timeout                                       :number // time.Duration go{must}
-	value                                         :any // any go{type="[]string"}
-	raw                                           :string // []byte go{raw} sql{name="rawbytes"}
+	inc:                        number
+	ints:                       number
+	ints8:                      number
+	ints16:                     number
+	ints32:                     number
+	ints64:                     number
+	uints:                      number
+	uints8:                     number
+	uints16:                    any
+	uints32:                    number
+	uints64:                    number
+	floats32:                   number
+	floats64:                   number
+	bools:                      boolean
+	byte1:                      any
+	bytes:                      string
+	list_ints:                  number[]
+	list_string:                string[]
+	list_float:                 number[]
+	map_string_string:          Record<string, string>
+	map_string_bytes:           Record<string, string>
+	map_string_bool:            Record<string, boolean>
+	map_string_int:             Record<string, number>
+	map_string_float64:         Record<string, number>
+	map_string_any:             Record<string, any>
+	map_int_string:             Record<string, number>
+	map_int_int:                Record<string, number>
+	map_int_bool:               Record<string, number>
+	renameSQL:                  string
+	renameGO:                   string
+	renameJS:                   string
+	mast_upper_go:              string
+	intToSmallInt:              number
+	skip:                       string
+	sql_unique_u1_1:            number
+	sql_unique_u1_2:            number
+	sql_index1_1:               number
+	sql_index1_2:               number
+	sql_index1_3:               number
+	sql_keys_1:                 number
+	sql_keys_2:                 number
+	sql_keys_3:                 number
+	sql_search:                 string
+	sql_get:                    string
+	sql_unique_x1:              number
+	sql_unique_x2:              number
+	sql_unique_x1_x2:           number
+	sql_primary:                number
+	sql_jsonb_index:            Record<string, any>
+	time_duration:              number
+	go_type_int_to_strings:     number
 }

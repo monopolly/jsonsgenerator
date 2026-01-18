@@ -79,10 +79,11 @@ func (a *Settings) Parse(in string) {
 	a.SQL.QueryName = fmt.Sprintf("%sQuery", a.Go.StructName)
 
 	// sql class
-	a.Clickhouse.ClassVarName = fmt.Sprintf("%sCHSQL", a.Go.StructName)
-	a.Clickhouse.Class = fmt.Sprintf("sqlCH%s", a.Go.StructName)
-	a.Clickhouse.QueryName = fmt.Sprintf("%sCHQuery", a.Go.StructName)
-	a.Clickhouse.Engine, _ = res.Options["chengine"].(string)
+	// a.Clickhouse.ClassVarName = fmt.Sprintf("%sCHSQL", a.Go.StructName)
+
+	// a.Clickhouse.Class = fmt.Sprintf("%sClickhouseSQL", a.Go.StructName)
+	// a.Clickhouse.QueryName = fmt.Sprintf("%sClickhouseQuery", a.Go.StructName)
+	// a.Clickhouse.Engine, _ = res.Options["chengine"].(string)
 
 	// index type name
 	a.IndexTypeName = fmt.Sprintf("%sIndexType", a.Go.StructName)

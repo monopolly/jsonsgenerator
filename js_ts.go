@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"strings"
-
-	"github.com/monopolly/jsonsgenerator/tools"
 )
 
 // insert sql query
@@ -60,7 +58,18 @@ func generateTypeScript() []byte {
 
 	list = append(list, fmt.Sprintf("type %s = {", structname))
 
+	var pad int
 	for _, x := range fields {
+		lens := len(x.Name)
+		if pad < lens {
+			pad = lens
+		}
+	}
+
+	// pads := strings.Repeat(" ", pad)
+
+	for _, x := range fields {
+
 		var tsType string
 		switch x.Type {
 		case "int", "int64", "uint", "uint64", "time.Duration", "int16", "int32", "uint32", "int8", "uint8", "float64", "float32":
@@ -99,15 +108,7 @@ func generateTypeScript() []byte {
 			}
 		}
 
-		var line string
-		line = "\t" + tools.Formatline(x.Name, ":"+tsType)
-
-		line += " // " + x.Type
-
-		if x.Comment != "" {
-			line += " " + x.Comment
-		}
-		list = append(list, line)
+		list = append(list, fmt.Sprintf("\t%s:%s%s", x.Name, strings.Repeat(" ", (pad+5)-len(x.Name)), tsType))
 
 		//switcher = append(switcher, formatline(fmt.Sprintf(`case '%s': `, x.Name), fmt.Sprintf(`this.%s.%s = v; return;`, structname, x.Name)))
 

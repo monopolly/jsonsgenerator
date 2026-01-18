@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"strings"
-
-	"github.com/monopolly/jsonsgenerator/tools"
 )
 
 // func (a *SQL) StructToPackage() []byte {
@@ -49,6 +47,13 @@ func (a *SQL) File() []byte {
 	renames := map[string]string{}
 	indexgroup := map[string]map[string]bool{}
 	indexsearch := map[string]map[string]bool{}
+
+	var pad int
+	for _, x := range fields {
+		if len(x.SQL.Name) > pad {
+			pad = len(x.SQL.Name)
+		}
+	}
 
 	for _, x := range fields {
 		if x.SQL.Skip {
@@ -133,7 +138,9 @@ func (a *SQL) File() []byte {
 			sqlFieldLine = append(sqlFieldLine, x.SQL.Default.Value)
 		}
 
-		sqltype := tools.Formatline("\t"+x.SQL.Name, strings.Join(sqlFieldLine, " "))
+		sqltype := fmt.Sprintf("\t%s%s%s", x.SQL.Name, strings.Repeat(" ", (pad+5)-len(x.SQL.Name)), strings.Join(sqlFieldLine, " "))
+
+		// sqltype := tools.Formatline("\t"+x.SQL.Name, strings.Join(sqlFieldLine, " "))
 		fieldList = append(fieldList, sqltype)
 
 	}
@@ -145,7 +152,10 @@ func (a *SQL) File() []byte {
 			names = append(names, name)
 		}
 		// fieldList = append(fieldList, fmt.Sprintf("\t%s \ttsvector generated always as (to_tsvector('simple', %s)) stored", groupname, strings.Join(names, " || ' ' || ")))
-		fieldList = append(fieldList, tools.Formatline("\t"+groupname, fmt.Sprintf("tsvector generated always as (to_tsvector('simple', %s)) stored", strings.Join(names, " || ' ' || "))))
+		// fieldList = append(fieldList, tools.Formatline("\t"+groupname, ))
+
+		fieldList = append(fieldList, fmt.Sprintf("\t%s%s%s", groupname, strings.Repeat(" ", (pad+5)-len(groupname)), fmt.Sprintf("tsvector generated always as (to_tsvector('simple', %s)) stored", strings.Join(names, " || ' ' || "))))
+
 		indexname := fmt.Sprintf("gin_%s_%s", settings.Origin, groupname)
 		indexes = append(indexes, fmt.Sprintf("--drop index %s;", indexname))
 		indexes = append(indexes, fmt.Sprintf("--ex: select * from %s where %s @@ to_tsquery('f8');", settings.SQL.Table, groupname))

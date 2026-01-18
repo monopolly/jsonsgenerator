@@ -11,7 +11,7 @@ import (
 func (a *SQL) DeleteWhere() []byte {
 
 	var list []string
-	list = append(list, "\n//delete item where i = 1 and w = 'nice'")
+	list = append(list, "\n//delete item where: i = 1 and w = 'nice'")
 	list = append(list, fmt.Sprintf(`func (a *%s) DeleteWhere(where string) (err error) {`, settings.SQL.Class))
 
 	list = append(list, `

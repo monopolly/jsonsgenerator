@@ -54,7 +54,7 @@ func generateJSModel() []byte {
 		}
 
 		// var line string
-		line := fmt.Sprintf("\t\t%s: %s, //%s %s", x.Name, Type, x.Type, x.Comment)
+		line := fmt.Sprintf("\t\t%s: %s,", x.Name, Type)
 		list = append(list, line)
 
 	}

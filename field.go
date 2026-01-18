@@ -57,6 +57,8 @@ type Field struct {
 		NoInsert   bool   //если не нужно добавлять в sql insert
 		Type       string //new sql type jsonb
 		JsonbArray bool   //new sql type
+		Get        bool   //need golang sql methods GetName(v type)
+		Keys       string //need golang sql methods GetNameSecond(v1 type, v2 type...)
 
 		Index struct {
 			Simple       bool //создать индекс по полю
@@ -79,31 +81,10 @@ type Field struct {
 	}
 
 	Clickhouse struct {
-		Name       string //sql name
-		Engine     string //sql engine ENGINE = MergeTree()
-		Replace    string //заменяет sql type
-		Append     string //добавляет sql
-		NoInsert   bool   //если не нужно добавлять в sql insert
-		Type       string //new sql type https://clickhouse.com/docs/sql-reference/data-types/int-uint
-		JsonbArray bool   //new sql type
-
-		Index struct {
-			Simple       bool //создать индекс по полю
-			Concurrently bool //конкурентный индекс
-			// Jsonb        bool     //создать jsonb индекс
-			Search []string //создать текстовый индекс чтобы искать текст
-			Group  []string
-		}
-		Default struct {
-			Value    string
-			Simple   bool
-			Unixtime bool
-		}
-		Inc        bool     //"bigserial primary key" noinsert
-		Skip       bool     //если не нужно добавлять в sql таблицу
-		Unique     []string //unique fields
-		Primary    bool     //primary key fields PRIMARY KEY(category_id, sale_date)
-		AlterTable string   //version || 1
-		Rename     string   //rename="oldname"
+		Name    string //sql name id, name...
+		Type    string //new sql type https://clickhouse.com/docs/sql-reference/data-types/int-uint
+		Skip    bool   //если не нужно добавлять в sql таблицу
+		Primary bool   //primary key fields PRIMARY KEY(category_id, sale_date)
+		Unix    bool   //primary key fields PRIMARY KEY(category_id, sale_date)
 	}
 }

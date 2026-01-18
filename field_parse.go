@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/monopolly/jsonsgenerator/tools"
 	"strings"
+
+	"github.com/monopolly/jsonsgenerator/tools"
 )
 
 func (a *Field) Parse() {
@@ -13,7 +14,8 @@ func (a *Field) Parse() {
 	a.Go.UserLists = make(map[string][]string)
 
 	//потому что go не дает type ставить
-	if a.Name == "types" {
+	switch a.Name {
+	case "types":
 		a.Name = "type"
 	}
 
@@ -48,6 +50,11 @@ func (a *Field) Parse() {
 
 	// sql
 	a.parseSQLOptions(tools.Between(a.Comment, "sql{", "}"))
+
+	// clickhouse
+	if settings.Clickhouse.Table != "" {
+		a.parseClickhouseOptions(tools.Between(a.Comment, "ch{", "}"))
+	}
 
 	// js
 	a.parseJSOptions(tools.Between(a.Comment, "js{", "}"))

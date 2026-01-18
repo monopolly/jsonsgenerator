@@ -8,11 +8,11 @@ import (
 )
 
 // get list
-func (a *SQL) Get() []byte {
+func (a *SQL) GetWhere() []byte {
 
 	var list []string
 	list = append(list, "\n//parse sql query")
-	list = append(list, fmt.Sprintf(`func (a *%s) Get(id any, fields ...%s) (res *%s, err error) {`, settings.SQL.Class, settings.IndexTypeName, settings.Go.StructName))
+	list = append(list, fmt.Sprintf(`func (a *%s) GetWhere(where string, fields ...%s) (res *%s, err error) {`, settings.SQL.Class, settings.IndexTypeName, settings.Go.StructName))
 
 	list = append(list, `
 	c := context.Background()
@@ -38,15 +38,14 @@ func (a *SQL) Get() []byte {
 		}
 		fieldlist := strings.Join(list, ", ")
 	`)
-	incField := "id"
-	if settings.Fields.IncField != "" {
-		incField = settings.Fields.IncField
-	}
-	list = append(list, `q := fmt.Sprintf("select %s ", fieldlist)`)
-	list = append(list, fmt.Sprintf(`q = q + "from %s where %s = $1 limit 1"`, settings.SQL.Table, incField))
+
+	list = append(list, `q := fmt.Sprintf("select %s", fieldlist)`)
+	list = append(list, fmt.Sprintf(`q = q + " from %s"`, settings.SQL.Table))
+	list = append(list, `q = q + fmt.Sprintf(" where %s ", where)`)
+	list = append(list, `q = q + " limit 1"`)
 	list = append(list, fmt.Sprintf(`res = new(%s)`, settings.Go.StructName))
 
-	list = append(list, `rows, err := conn.Query(c, q, id)
+	list = append(list, `rows, err := conn.Query(c, q)
 	if err != nil {
 		return
 	}

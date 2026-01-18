@@ -127,7 +127,7 @@ func generateGetSQLQuery() []byte {
 		return
 	}
 	if len(v) != len(fields){
-		err = fmt.Errorf("len")
+		err = errors.New("len")
 		return
 	}
 	for pos, x := range fields {
@@ -171,7 +171,7 @@ func generateGetListSQLQuery() []byte {
 			continue
 		}
 		if len(v) != len(fields){
-			err = fmt.Errorf("len")
+			err = errors.New("len")
 			continue
 		}
 		for pos, x := range fields {

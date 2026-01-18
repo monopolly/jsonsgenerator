@@ -212,13 +212,18 @@ var imports = map[string]bool{
 	"reflect":                           true,
 	"strings":                           true,
 	"time":                              true,
+	"errors":                            true,
 	"github.com/niubaoshu/gotiny":       true,
 	"github.com/vmihailenco/msgpack/v5": true,
-	"github.com/monopolly/errors":       true,
+	"github.com/ClickHouse/clickhouse-go/v2/lib/driver": true,
+	"github.com/json-iterator/go":                       true,
+	"github.com/monopolly/cast":                         true,
+	"github.com/jackc/pgx/v5/pgxpool":                   true,
+	"github.com/monopolly/jsons":                        true,
 }
 
 // "github.com/jackc/pgx/v5/pgxpool"
-// "github.com/monopolly/cast"
+//
 // "github.com/monopolly/jsons"
 
 func importers() []byte {

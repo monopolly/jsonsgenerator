@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/monopolly/jsonsgenerator/tools"
 	"strings"
+
+	"github.com/monopolly/jsonsgenerator/tools"
 )
 
 // sql options
@@ -12,6 +13,7 @@ func (a *Field) parseSQLOptions(v string) {
 	a.SQL.Skip = strings.Contains(v, "skip")
 	a.SQL.Primary = strings.Contains(v, "primarykey")
 	a.SQL.Inc = strings.Contains(v, "inc")
+	a.SQL.Get = strings.Contains(v, "get")
 	if a.SQL.Inc {
 		a.SQL.NoInsert = true
 	}
@@ -26,6 +28,7 @@ func (a *Field) parseSQLOptions(v string) {
 	a.SQL.Append = tools.Between(v, `add="`, `"`)
 	a.SQL.Unique = tools.Betweens(v, `unique="`, `"`)
 	a.SQL.Rename = tools.Between(v, `renames="`, `"`)
+	a.SQL.Keys = tools.Between(v, `keys="`, `"`)
 	a.SQL.Index.Group = tools.Betweens(v, `idx="`, `"`)
 	a.SQL.Index.Search = tools.Betweens(v, `search="`, `"`)
 	a.SQL.Type = tools.Between(v, `type="`, `"`)
@@ -40,7 +43,7 @@ func (a *Field) parseSQLOptions(v string) {
 
 	// go type to postgres type
 	if a.SQL.Type == "" {
-		DetectSQLType(a)
+		GoTypeToSQLType(a)
 	}
 
 	DetectSQLDefault(a)

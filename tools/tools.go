@@ -137,7 +137,7 @@ func Betweens(raw string, startTag, endTag string) (value []string) {
 
 }
 
-func Formatline(k string, v interface{}) (res string) {
+func Formatline(k string, v any) (res string) {
 	switch Padding / 10 {
 	case 0:
 		return fmt.Sprintf("%-15s %v", k, v)
@@ -152,7 +152,12 @@ func Formatline(k string, v interface{}) (res string) {
 	}
 }
 
-func FormatLineSwift(k string, v interface{}, lens int) (res string) {
+func FormatLineFix(pad int, k string, v any) (res string) {
+	p := strings.Repeat(" ", pad)
+	return fmt.Sprintf("%s%s%v", p, k, v)
+}
+
+func FormatLineSwift(k string, v any, lens int) (res string) {
 	return fmt.Sprintf("%s%s%v", k, strings.Repeat(" ", lens-len(k)), v)
 }
 

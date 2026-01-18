@@ -1,14 +1,59 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 )
 
-var clickhouse Clickhouse
+// insert sql query
+func DetectClickhouseType(x *Field) {
 
-type Clickhouse int
+	// detect sql type
+	switch x.Type {
+	case "int", "time.Duration":
+		x.Clickhouse.Type = "Int64"
+	case "int64":
+		switch x.Clickhouse.Unix {
+		case true:
+			x.Clickhouse.Type = "DateTime"
+		default:
+			x.Clickhouse.Type = "Int64"
+		}
+	case "uint", "uint64":
+		x.Clickhouse.Type = "UInt64"
+	case "uint256":
+		x.Clickhouse.Type = "UInt256"
+	case "float64":
+		x.Clickhouse.Type = "Float64"
+	case "bool":
+		x.Clickhouse.Type = "Bool"
+	case "string":
+		x.Clickhouse.Type = "String"
+	case "ip4":
+		x.Clickhouse.Type = "IPv4"
+	case "ip6":
+		x.Clickhouse.Type = "IPv6"
+	default:
+		switch {
+		case strings.HasPrefix(x.Type, "[]"):
+			p := strings.ReplaceAll(x.Type, "[]", "")
+			switch p {
+			case "int":
+				x.Clickhouse.Type = "Array(Int64)"
+			case "string":
+				x.Clickhouse.Type = "Array(String)"
+			default:
+				x.Clickhouse.Type = "JSON"
+			}
+		case strings.HasPrefix(x.Type, "map["):
+			x.Clickhouse.Type = "JSON"
+		default:
+			panic(fmt.Sprintf("clickhouse type %s is not supported yet", x.Type))
+		}
+
+	}
+
+}
 
 /*
 Int8	[-128 : 127]
@@ -92,48 +137,3 @@ maxMap
 
 // 	}
 // }
-
-func (a *Clickhouse) Generate() []byte {
-	var list [][]byte
-
-	// sql class
-	// list = append(list, a.Class())
-	// list = append(list, a.TableName())
-	// list = append(list, a.Get())
-	// list = append(list, a.Row())
-	// list = append(list, a.All())
-	// list = append(list, a.List())
-	// list = append(list, a.Update())
-	// list = append(list, a.Updates())
-	// list = append(list, a.UpdateJsonb())
-	// list = append(list, a.Query())
-	// list = append(list, a.QueryInitFunction())
-	// list = append(list, a.Search())
-	// list = append(list, a.Delete())
-	// list = append(list, a.DeleteWhere())
-	// list = append(list, a.Insert())
-	// list = append(list, a.Has())
-	// list = append(list, a.Engine())
-	// list = append(list, a.CreateTable())
-
-	return bytes.Join(list, []byte("\n\n"))
-}
-
-// type AccountsSQL int
-func (a *Clickhouse) Class() []byte {
-
-	var list []string
-	list = append(list, fmt.Sprintf("//sql %s class", settings.SQL.Class))
-	// list = append(list, fmt.Sprintf("var %s %s", settings.SQL.ClassVarName, settings.SQL.Class))
-	list = append(list, fmt.Sprintf("type %s int", settings.SQL.Class))
-
-	return []byte(strings.Join(list, "\n"))
-
-}
-
-// sql file
-func (a *Clickhouse) File() []byte {
-
-	return nil
-
-}

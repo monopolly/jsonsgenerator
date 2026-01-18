@@ -65,7 +65,7 @@ func (a *SQL) Row() []byte {
 		return
 	}
 	if len(v) != len(fields){
-		err = fmt.Errorf("len")
+		err = errors.New("len")
 		return
 	}
 	for pos, x := range fields {

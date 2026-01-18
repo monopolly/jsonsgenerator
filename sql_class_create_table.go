@@ -61,6 +61,13 @@ func (a *SQL) createTableSQL() (res string) {
 	indexgroup := map[string]map[string]bool{}
 	indexsearch := map[string]map[string]bool{}
 
+	var pad int
+	for _, x := range fields {
+		if len(x.SQL.Name) > pad {
+			pad = len(x.SQL.Name)
+		}
+	}
+
 	for _, x := range fields {
 		if x.SQL.Skip {
 			continue
@@ -116,7 +123,7 @@ func (a *SQL) createTableSQL() (res string) {
 			sqlFieldLine = append(sqlFieldLine, x.SQL.Default.Value)
 		}
 
-		sqltype := tools.Formatline("\t"+x.SQL.Name, strings.Join(sqlFieldLine, " "))
+		sqltype := fmt.Sprintf("\t%s%s%s", x.SQL.Name, strings.Repeat(" ", (pad+5)-len(x.SQL.Name)), strings.Join(sqlFieldLine, " "))
 		fieldList = append(fieldList, sqltype)
 
 	}

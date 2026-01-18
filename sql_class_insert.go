@@ -12,6 +12,16 @@ func (a *SQL) Insert() []byte {
 	}
 }
 
+// go struct: insert sql query
+func (a *SQL) InsertNoConflict() []byte {
+	switch settings.Fields.IncField != "" {
+	case true:
+		return a.insertIDNoConflict()
+	default:
+		return a.insertNoIDNoConflict()
+	}
+}
+
 // парсер для изначальной структуры в []intefacr{}
 func (a *SQL) insertTuple() (list []string) {
 

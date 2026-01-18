@@ -1,6 +1,6 @@
 package main
 
-import "encoding/json"
+import jsoniter "github.com/json-iterator/go"
 
 // генерит New() для jsons структуры
 func jsonDemo() []byte {
@@ -9,6 +9,6 @@ func jsonDemo() []byte {
 		k, v := x.JsonDemo()
 		list[k] = v
 	}
-	b, _ := json.Marshal(list)
+	b, _ := jsoniter.Marshal(list)
 	return b
 }
