@@ -5,21 +5,21 @@ import (
 	"strings"
 )
 
-// название полей для json
+// field names for json
 func (a *Golang) IndexNamed() []byte {
 
 	prefix := "Json"
 
-	//список
+	// list
 	var list []string
 	list = append(list, "")
-	list = append(list, "//название полей для json")
+	list = append(list, "// field names for json")
 	list = append(list, "const (")
 	for _, x := range fields {
 		//JsonFieldNewsID
 		x.Json.Named = fmt.Sprintf("%s%s%s", prefix, settings.JS.Name, x.Go.Name)
 		var line string
-		//если есть кастомное json поле
+		// custom json field, if present
 		switch x.Json.Name != "" {
 		case true:
 			//fieldName = "options.name" //string comment...

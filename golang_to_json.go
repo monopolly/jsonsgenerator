@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// парсер для изначальной структуры в []intefacr{}
+// parser from the original struct to []interface{}
 func (a *Golang) ToJson() []byte {
 
 	js := []string{

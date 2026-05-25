@@ -30,6 +30,29 @@ func (a *structName) funcName(v ...date.Int) (res date.Int) {
 }
 `
 
+var JSONconvertfunc = `
+		 //funcName set or get value
+		 func (a *structName) funcName(v ...funcType) (res funcType) {
+			 if v == nil {
+				 return funcType(jsons.jsonsFunc((*a), fieldKey))
+			 }
+			 a.Set(fieldKey, v[0])
+			 return
+		 }
+		 `
+
+var JSONgeneric = `
+		 //funcName set or get value
+		 func (a *structName) funcName(v ...funcType) (res funcType) {
+			 if v == nil {
+				 _ = jsoniter.Unmarshal([]byte(jsons.Get((*a), fieldKey).Raw), &res)
+				 return
+			 }
+			 a.Set(fieldKey, v[0])
+			 return
+		 }
+		 `
+
 var JSONarray = `
 	//funcName set or get value
 	func (a *structName) funcName(v ...varType) (res funcType) {
@@ -38,6 +61,62 @@ var JSONarray = `
 		}
 		a.Set(fieldKey, v)
 		return 
+	}
+
+	//funcNameAdd add values
+	func (a *structName) funcNameAdd(v ...varType) {
+		a.Set(fieldKey, append(a.funcName(), v...))
+	}
+
+	//funcNamePrepend add values
+	func (a *structName) funcNamePrepend(v ...varType) {
+		a.Set(fieldKey, append(v, a.funcName()...))
+	}
+
+	//funcNameAddUnique add unique values only
+	func (a *structName) funcNameAddUnique(v ...varType) {
+		var list []varType
+		un := map[varType]bool{}
+		for _, x := range a.funcName(){
+			if un[x]{
+				continue
+			}
+			list = append(list, x)
+			un[x] = true
+		}
+		for _, x :=range v{
+			if un[x]{
+				continue
+			}
+			list = append(list, x)
+			un[x] = true
+		}
+
+		a.funcName(list...)
+	}
+
+	//funcNameDelete add unique values only
+	func (a *structName) funcNameDelete(v varType) {
+		var list []varType
+		for _, x := range a.funcName(){
+			if x == v {
+				continue
+			}
+			list = append(list, x)
+		}
+		a.funcName(list...)
+	}
+`
+
+var JSONarrayGeneric = `
+	//funcName set or get value
+	func (a *structName) funcName(v ...varType) (res funcType) {
+		if v == nil {
+			_ = jsoniter.Unmarshal([]byte(jsons.Get((*a), fieldKey).Raw), &res)
+			return
+		}
+		a.Set(fieldKey, v)
+		return
 	}
 
 	//funcNameAdd add values

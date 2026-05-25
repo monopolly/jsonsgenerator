@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// парсер для изначальной структуры в []intefacr{}
+// parser from the original struct to []interface{}
 func (a *Golang) SQLStructToTuple() []byte {
 
 	lines := []string{
@@ -26,7 +26,7 @@ func (a *Golang) SQLStructToTuple() []byte {
 	return []byte(strings.Join(lines, "\n"))
 }
 
-// парсер для изначальной структуры в []intefacr{}
+// parser from the original struct to []interface{}
 func (a *Golang) SQLAllStructToTuple() []byte {
 
 	lines := []string{
@@ -40,6 +40,32 @@ func (a *Golang) SQLAllStructToTuple() []byte {
 			continue
 		}
 		fieldlist = append(fieldlist, fmt.Sprintf(`a.%s`, x.Go.Name))
+	}
+	lines = append(lines, fmt.Sprintf("return []any{%s}", strings.Join(fieldlist, ",")))
+	lines = append(lines, "}")
+
+	return []byte(strings.Join(lines, "\n"))
+}
+
+// parser from the original struct to []interface{}
+func (a *Golang) ClickhouseStructToTuple() []byte {
+
+	lines := []string{
+		"\n",
+		"//Tuple create an array from struct for clickhouse",
+		fmt.Sprintf("func (a *%s) clickhouseTuple() (r []any){ ", settings.Go.StructName),
+	}
+	var fieldlist []string
+	for _, x := range fields {
+		if x.Clickhouse.Skip {
+			continue
+		}
+		switch x.Clickhouse.IP {
+		case true:
+			fieldlist = append(fieldlist, fmt.Sprintf(`net.ParseIP(a.%s)`, x.Go.Name))
+		default:
+			fieldlist = append(fieldlist, fmt.Sprintf(`a.%s`, x.Go.Name))
+		}
 	}
 	lines = append(lines, fmt.Sprintf("return []any{%s}", strings.Join(fieldlist, ",")))
 	lines = append(lines, "}")

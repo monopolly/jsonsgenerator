@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package news;
+
+option go_package = "./;news";
+
+import "google/protobuf/struct.proto";
+
+message NewsProto {
+  int64 inc = 1;
+  int64 ints = 2;
+  int32 ints8 = 3;
+  int32 ints16 = 4;
+  int32 ints32 = 5;
+  int64 ints64 = 6;
+  uint64 uints = 7;
+  uint32 uints8 = 8;
+  uint32 uints16 = 9;
+  uint32 uints32 = 10;
+  uint64 uints64 = 11;
+  float floats32 = 12;
+  double floats64 = 13;
+  bool bools = 14;
+  uint32 byte1 = 15;
+  bytes bytes = 16;
+  repeated int64 list_ints = 17;
+  repeated string list_string = 18;
+  repeated double list_float = 19;
+  map<string, string> map_string_string = 20;
+  map<string, bytes> map_string_bytes = 21;
+  map<string, bool> map_string_bool = 22;
+  map<string, int64> map_string_int = 23;
+  map<string, double> map_string_float64 = 24;
+  map<string, google.protobuf.Value> map_string_any = 25;
+  map<int64, string> map_int_string = 26;
+  map<int64, int64> map_int_int = 27;
+  map<int64, bool> map_int_bool = 28;
+  string rename_sql = 29;
+  string rename_go = 30;
+  string rename_js = 31;
+  string mast_upper_go = 32;
+  int64 int_to_small_int = 33;
+  string skip = 34;
+  int64 sql_unique_u1_1 = 35;
+  int64 sql_unique_u1_2 = 36;
+  int64 sql_index1_1 = 37;
+  int64 sql_index1_2 = 38;
+  int64 sql_index1_3 = 39;
+  int64 sql_keys_1 = 40;
+  int64 sql_keys_2 = 41;
+  int64 sql_keys_3 = 42;
+  string sql_search = 43;
+  string sql_get = 44;
+  int64 sql_unique_x1 = 45;
+  int64 sql_unique_x2 = 46;
+  int64 sql_unique_x1_x2 = 47;
+  double sql_primary = 48;
+  map<string, google.protobuf.Value> sql_jsonb_index = 49;
+  int64 time_duration = 50;
+  repeated string go_type_int_to_strings = 51;
+  int64 public_field1 = 52;
+  int64 public_field2 = 53;
+  int64 public_field3 = 54;
+  int64 public_field_me1 = 55;
+  int64 public_field_me2 = 56;
+  int64 public_field_me3 = 57;
+}

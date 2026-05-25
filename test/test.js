@@ -52,6 +52,12 @@ export default{
 		sql_jsonb_index: {},
 		time_duration: undefined,
 		go_type_int_to_strings: undefined,
+		public_field1: undefined,
+		public_field2: undefined,
+		public_field3: undefined,
+		public_field_me1: undefined,
+		public_field_me2: undefined,
+		public_field_me3: undefined,
 	},
 
 }

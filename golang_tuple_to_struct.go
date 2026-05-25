@@ -7,7 +7,7 @@ import (
 	"github.com/monopolly/cast"
 )
 
-// парсер для изначальной структуры в []intefacr{}
+// parser from the original struct to []interface{}
 func (a *Golang) TupleToStruct() []byte {
 
 	parse := []string{
@@ -24,11 +24,10 @@ func (a *Golang) TupleToStruct() []byte {
 		if x.Go.Type != "" {
 			continue
 		}
-		if cast.Supported(x.Type) != nil {
+		if !goConvertSupported(x.Type) && cast.Supported(x.Type) != nil {
 			panic(fmt.Sprintf("cast not support type %s", x.Type))
 		}
-		var parsefunc string
-		parsefunc = fmt.Sprintf(`cast.Convert(&a.%[1]s, x)`, x.Go.Name)
+		parsefunc := goConvertCode(x.Go.Name, "x", x.Type)
 		// switch x.Type {
 		// case "int":
 		// 	parsefunc = fmt.Sprintf(`a.%s = cast.Int(x)`, x.Go.Name)

@@ -1,6 +1,6 @@
 --drop table news;
 create table if not exists news (
-	inc                        bigserial primary key,
+	inc                        bigserial,
 	ints                       bigint,
 	ints8                      smallint,
 	ints16                     int,
@@ -49,10 +49,16 @@ create table if not exists news (
 	sql_primary                double precision,
 	sql_jsonb_index            jsonb default '{}'::jsonb,
 	time_duration              bigint,
-	go_type_int_to_strings     bigint,
+	go_type_int_to_strings     jsonb default '[]'::jsonb,
+	public_field1              bigint,
+	public_field2              bigint,
+	public_field3              bigint,
+	public_field_me1           bigint,
+	public_field_me2           bigint,
+	public_field_me3           bigint,
 	search                     tsvector generated always as (to_tsvector('simple', sql_search)) stored,
 	unique(sql_unique_x1,sql_unique_x1_x2),
-	unique(sql_unique_x2,sql_unique_x1_x2),
+	unique(sql_unique_x1_x2,sql_unique_x2),
 	unique(sql_unique_u1_1,sql_unique_u1_2),
 	primary key (sql_primary)
 );
@@ -76,4 +82,4 @@ create index if not exists gin_news_sql_jsonb_index on news using gin(sql_jsonb_
 create index if not exists gin_news_search on news using gin(search);
 
 --drop index idx_news_index1;
-create index if not exists idx_news_index1 on news (sql_index1_2,sql_index1_3,sql_index1_1);
+create index if not exists idx_news_index1 on news (sql_index1_1,sql_index1_2,sql_index1_3);

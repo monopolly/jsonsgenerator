@@ -23,6 +23,7 @@ func (a *SQL) Generate() []byte {
 	list = append(list, a.InsertFull())
 	list = append(list, a.ReindexSerial())
 	list = append(list, a.Get())
+	list = append(list, a.GetCustomStructs())
 	list = append(list, a.GetWhere())
 	list = append(list, a.Row())
 	list = append(list, a.All())
@@ -59,7 +60,8 @@ func (a *SQL) Class() []byte {
 	func New%[1]s(pool *pgxpool.Pool) (a *%[1]s){
 		a = new(%[1]s)
 		a.pool = pool
-		return 
+		a.CreateTable()
+		return
 	}
 	`
 

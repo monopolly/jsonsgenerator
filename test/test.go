@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// go=News sql=news ts=news swift demo enum=Category noprefix msgp gotiny
+// go=News sql=news js=NewsJson ch=news proto ts=news swift demo enum=Category noprefix msgp gotiny
 type news struct {
 	inc int // sql{inc}  #readonly
 
@@ -96,6 +96,13 @@ type news struct {
 	time_duration time.Duration
 
 	go_type_int_to_strings int // go{type="[]string"}
+
+	public_field1    int //@public
+	public_field2    int //@public
+	public_field3    int //@public
+	public_field_me1 int //@me
+	public_field_me2 int //@me
+	public_field_me3 int //@me
 
 	// add
 	// sql{CREATE INDEX ON film USING GIN(mapAny)}

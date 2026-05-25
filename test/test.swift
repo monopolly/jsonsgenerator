@@ -49,4 +49,10 @@ struct NewsModel: Identifiable, Decodable, Encodable {
 	var sql_jsonb_index         : [String:Any]? = [String:Any]() // map[string]any sql{index}
 	var time_duration           : Int? = 0 // time.Duration
 	var go_type_int_to_strings  : Int? = 0 // int go{type="[]string"}
+	var public_field1           : Int? = 0 // int @public
+	var public_field2           : Int? = 0 // int @public
+	var public_field3           : Int? = 0 // int @public
+	var public_field_me1        : Int? = 0 // int @me
+	var public_field_me2        : Int? = 0 // int @me
+	var public_field_me3        : Int? = 0 // int @me
 }

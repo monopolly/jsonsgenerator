@@ -68,6 +68,25 @@ func (a *Golang) IndexType() []byte {
 	list = append(list, "}")
 	list = append(list, "}")
 
+	//clickhouse name
+	list = append(list, "\n")
+	list = append(list, "//key index clickhouse string")
+	list = append(list, fmt.Sprintf("func (a %s) ClickhouseName() string {", settings.IndexTypeName))
+	list = append(list, "switch a {")
+	for _, x := range fields {
+		list = append(list, fmt.Sprintf(`case %s:`, x.Go.Index))
+		switch x.Clickhouse.Name != "" {
+		case true:
+			list = append(list, fmt.Sprintf(`return "%s"`, x.Clickhouse.Name))
+		default:
+			list = append(list, fmt.Sprintf(`return "%s"`, x.Name))
+		}
+
+	}
+	list = append(list, `default: return ""`)
+	list = append(list, "}")
+	list = append(list, "}")
+
 	//type
 	list = append(list, "\n")
 	list = append(list, "//key index type")

@@ -1,7 +1,7 @@
 package main
 
-// индекс это номера полей для json
-// должен быть первым если где то используется
+// index stores json field numbers
+// must be first when it is used elsewhere
 func (a *Golang) Index() []byte {
 
 	index := a.IndexInt()

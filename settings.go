@@ -11,7 +11,8 @@ func NewSettings() (a *Settings) {
 }
 
 type Settings struct {
-	Debug bool
+	Debug      bool
+	StructSize int //bytes
 
 	Origin        string //type news struct{}
 	PackageName   string
@@ -34,19 +35,22 @@ type Settings struct {
 		Name string //go js struct name: NewsJson
 	}
 
+	Proto struct {
+		Name    string //NewsProto
+		Package string //pb
+	}
+
 	SQL struct {
-		Class string //accountSQL: type accountSQL int{}
-		// ClassVarName string //var AccountSQL accountSQL чтобы обращаться без инициализации
+		Class     string //accountSQL: type accountSQL int{}
 		Table     string //sql table from struct
 		QueryName string //NewsQuery
 	}
 
 	Clickhouse struct {
-		Table        string //sql table from struct
-		Engine       string //
-		Class        string //accountCHSQL: type accountCHSQL int{}
-		ClassVarName string //var AccountCHSQL accountCHSQL чтобы обращаться без инициализации
-		QueryName    string //NewsCHQuery
+		Table     string //sql table from struct
+		Engine    string //MergeTree
+		Class     string //AccountClickhouseSQL: type accountCHSQL int{}
+		QueryName string //NewsClickhouseQuery
 	}
 
 	Swift struct {
@@ -55,8 +59,10 @@ type Settings struct {
 	}
 
 	Options struct {
-		Noinit bool //убирает New() вообще
-		Demo   bool //demo json file with default values
+		Noinit   bool // removes New() entirely
+		Demo     bool //demo json file with default values
+		Optimize bool //demo json file with default values
+		Test     bool //generate go tests for generated file
 	}
 
 	Fields struct {
@@ -66,13 +72,15 @@ type Settings struct {
 	File struct {
 		path           string //test/news.go
 		golang         string //test/news.go
+		golangTest     string //test/newsGO_test.go
 		golangSQL      string //test/newsSQL.go
 		golangSQLQuery string //test/newsQuery.go
 		golangJSON     string //test/newsJson.go
 		swift          string //test/news.swift
 		enum           string //test/newsEnum.swift
 		sql            string //test/news.sql
-		clickhouse     string //test/news_ch.sql
+		clickhouse     string //test/news.cql
+		proto          string //test/news.proto
 		ts             string //test/news.ts
 		js             string //test/news.js
 		demo           string //test/news.json

@@ -195,7 +195,7 @@ func generateSwiftEnum() (v []byte) {
 		name = fmt.Sprintf("case .%s:", name)
 		if max < len(name) {
 			max = len(name)
-			fmt.Println(max)
+			// fmt.Println(max)
 		}
 	}
 

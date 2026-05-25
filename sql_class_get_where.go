@@ -50,7 +50,10 @@ func (a *SQL) GetWhere() []byte {
 		return
 	}
 	defer rows.Close()
-	rows.Next()
+	if !rows.Next() {
+		err = errors.New("not found")
+		return
+	}
 	v, err := rows.Values()
 	if err != nil {
 		return
@@ -61,7 +64,8 @@ func (a *SQL) GetWhere() []byte {
 	}
 	for pos, x := range fields {
 		res.Update(x.String(), v[pos])
-	}`)
+	}
+	err = rows.Err()`)
 
 	list = append(list, "return}")
 	return []byte(strings.Join(list, "\n"))

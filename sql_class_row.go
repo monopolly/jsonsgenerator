@@ -44,12 +44,24 @@ func (a *SQL) Row() []byte {
 		var values []any
 		var count int
 		for k,v := range eq{
+			if !GoStructNameValidKey(k){
+				err = errors.New(k)
+				return
+			}
+			in := GoStructNameKeyIndex(k)
 			count++
-			andlist = append(andlist, fmt.Sprintf("%s = $%d", k, count))
+			andlist = append(andlist, fmt.Sprintf("%s = $%d", in.SQLName(), count))
 			values = append(values, v)
+		}
+		if len(andlist) == 0 {
+			err = errors.New("emptykeys")
+			return
 		}
 		keys := strings.Join(andlist, " and ")
 	`)
+	m := list[len(list)-1]
+	m = strings.ReplaceAll(m, "GoStructName", settings.Go.StructName)
+	list[len(list)-1] = m
 
 	list = append(list, `q := fmt.Sprintf("select %s from %s where %s limit 1", fieldlist, a.TableName(), keys)`)
 	list = append(list, fmt.Sprintf(`res = new(%s)`, settings.Go.StructName))
@@ -59,7 +71,10 @@ func (a *SQL) Row() []byte {
 		return
 	}
 	defer rows.Close()
-	rows.Next()
+	if !rows.Next() {
+		err = errors.New("not found")
+		return
+	}
 	v, err := rows.Values()
 	if err != nil {
 		return
@@ -70,7 +85,8 @@ func (a *SQL) Row() []byte {
 	}
 	for pos, x := range fields {
 		res.Update(x.String(), v[pos])
-	}`)
+	}
+	err = rows.Err()`)
 
 	list = append(list, "return}")
 	return []byte(strings.Join(list, "\n"))

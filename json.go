@@ -9,7 +9,7 @@ var jsn JSON
 
 type JSON int
 
-// генерит New() для jsons структуры
+// generates New() for jsons struct
 func (a *JSON) generateJsonsInit() []byte {
 	res := `
 	//NewFuncName create struct
@@ -19,7 +19,7 @@ func (a *JSON) generateJsonsInit() []byte {
 `
 	if settings.Options.Noinit {
 		res = fmt.Sprintf(`
-	/* 
+	/*
 		%s
 	*/
 	`, res)
@@ -78,16 +78,23 @@ func (a *JSON) generateJsonsFunctions() []byte {
 
 		result := JSONdefaultfunc
 
-		varType := x.Type
+		fieldType := x.Type
+		if x.Go.Type != "" {
+			fieldType = x.Go.Type
+		}
+		varType := fieldType
 		var funcTypeMapKey, funcTypeMapValue string
-		switch x.Type {
+		switch fieldType {
 		case "float64":
 			jsonsValue = "Float64"
 		case "float32":
 			jsonsValue = "Float32"
+		case "int8", "int16", "int32":
+			jsonsValue = "Int"
+			result = JSONconvertfunc
 		case "int":
 			jsonsValue = "Int"
-			//функции прибавления и вычитания
+			// increment and decrement functions
 			if x.Json.Inc {
 				result = result + JSONinc
 			}
@@ -100,16 +107,16 @@ func (a *JSON) generateJsonsFunctions() []byte {
 						return jsons.jsonsFunc((*a), fieldKey)
 					}
 					a.Set(fieldKey, v[0])
-					return 
+					return
 				}
 			 `
 
-			//функции прибавления и вычитания
+			// increment and decrement functions
 			if x.Json.Inc {
 				result = result + JSONinc
 			}
 
-			//добавляем конвертер времени если что
+			// add time converter when needed
 			switch strings.ToLower(x.Name) {
 			case
 				"created", "create",
@@ -122,7 +129,7 @@ func (a *JSON) generateJsonsFunctions() []byte {
 					func (a *structName) funcNameTime() (res time.Time) {
 						return time.Unix(a.funcName(),0)
 					}
-			
+
 				`
 				x.Json.Time = true
 			default:
@@ -132,26 +139,29 @@ func (a *JSON) generateJsonsFunctions() []byte {
 					func (a *structName) funcNameTime() (res time.Time) {
 						return time.Unix(a.funcName(),0)
 					}
-			
+
 				`
 				}
 			}
 
 		case "uint64":
 			jsonsValue = "Uint64"
-			//функции прибавления и вычитания
+			// increment and decrement functions
 			if x.Json.Inc {
 				result = result + JSONinc
 			}
 		case "uint32":
 			jsonsValue = "Uint32"
-			//функции прибавления и вычитания
+			// increment and decrement functions
 			if x.Json.Inc {
 				result = result + JSONinc
 			}
+		case "uint16":
+			jsonsValue = "Uint"
+			result = JSONconvertfunc
 		case "uint":
 			jsonsValue = "Uint"
-			//функции прибавления и вычитания
+			// increment and decrement functions
 			if x.Json.Inc {
 				result = result + JSONinc
 			}
@@ -176,15 +186,54 @@ func (a *JSON) generateJsonsFunctions() []byte {
 			jsonsValue = "ArrayInt"
 			varType = "int"
 			result = JSONarray
+		case "[]int8":
+			jsonsValue = "ArrayInt8"
+			varType = "int8"
+			result = JSONarray
+		case "[]int16":
+			jsonsValue = "ArrayInt16"
+			varType = "int16"
+			result = JSONarray
+		case "[]int32":
+			jsonsValue = "ArrayInt32"
+			varType = "int32"
+			result = JSONarray
 		case "[]int64":
 			jsonsValue = "ArrayInt64"
 			varType = "int64"
 			result = JSONarray
+
+		case "[]uint":
+			jsonsValue = "ArrayUint"
+			varType = "uint"
+			result = JSONarray
+		case "[]uint8":
+			jsonsValue = "ArrayUint8"
+			varType = "uint8"
+			result = JSONarray
+		case "[]uint16":
+			jsonsValue = "ArrayUint16"
+			varType = "uint16"
+			result = JSONarray
+		case "[]uint32":
+			jsonsValue = "ArrayUint32"
+			varType = "uint32"
+			result = JSONarray
+		case "[]uint64":
+			jsonsValue = "ArrayUint64"
+			varType = "uint64"
+			result = JSONarray
+
+		case "[]float64":
+			varType = "float64"
+			result = JSONarrayGeneric
 		case "map[string]string":
 			jsonsValue = "MapString"
 			funcTypeMapKey = "string"
 			funcTypeMapValue = "string"
 			result = JSONmap
+		case "map[string][]byte":
+			result = JSONgeneric
 		case "map[string]bool":
 			jsonsValue = "MapBool"
 			funcTypeMapKey = "string"
@@ -210,6 +259,8 @@ func (a *JSON) generateJsonsFunctions() []byte {
 			funcTypeMapKey = "int"
 			funcTypeMapValue = "int"
 			result = JSONmap
+		case "map[int]bool":
+			result = JSONgeneric
 		case "map[int]string":
 			jsonsValue = "MapIntString"
 			funcTypeMapKey = "int"
@@ -230,13 +281,13 @@ func (a *JSON) generateJsonsFunctions() []byte {
 		result = strings.ReplaceAll(result, "funcTypeMapValue", funcTypeMapValue)
 		result = strings.ReplaceAll(result, "structName", settings.JS.Name)
 		result = strings.ReplaceAll(result, "funcName", x.Go.Name)
-		result = strings.ReplaceAll(result, "funcType", x.Type)
+		result = strings.ReplaceAll(result, "funcType", fieldType)
 		result = strings.ReplaceAll(result, "jsonsFunc", jsonsValue)
 		result = strings.ReplaceAll(result, "fieldKey", x.FieldName)
 		result = strings.ReplaceAll(result, "varType", varType)
 
 		if x.Go.Nofunc {
-			result = fmt.Sprintf(`/* 
+			result = fmt.Sprintf(`/*
 				%s
 			*/`, result)
 		}

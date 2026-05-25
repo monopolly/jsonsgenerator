@@ -3,6 +3,7 @@ package tools
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 )
@@ -29,12 +30,7 @@ func FindTags(line string) (res map[string]string) {
 }
 
 func ExistList(list []string, index string) bool {
-	for _, x := range list {
-		if x == index {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(list, index)
 }
 
 func Replace(v, tag, value string) string {
@@ -51,11 +47,11 @@ func Title(s string) string {
 
 // any text from start until \t\n\space
 func Value(raw string, key string, endtag ...string) (value string) {
-	i := strings.Index(raw, key)
-	if i == -1 {
+	_, after, ok := strings.Cut(raw, key)
+	if !ok {
 		return
 	}
-	for _, x := range raw[i+len(key):] {
+	for _, x := range after {
 		switch {
 		case unicode.IsSpace(x):
 			if endtag != nil {
@@ -165,7 +161,7 @@ func SqlWord(s string) bool {
 	return sqlkeywords[s]
 }
 
-// нельзя использовать в качестве sql полей
+// cannot be used as sql fields
 var sqlkeywords = map[string]bool{
 	"all":               true,
 	"analyse":           true,

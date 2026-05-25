@@ -22,6 +22,7 @@ type Help struct {
 	Swift      map[string]string
 	SQL        map[string]string
 	Clickhouse map[string]string
+	Proto      map[string]string
 	Custom     map[string]map[string]string
 }
 
@@ -33,6 +34,7 @@ func (a *Help) init() (b *Help) {
 	a.Swift = make(map[string]string)
 	a.SQL = make(map[string]string)
 	a.Clickhouse = make(map[string]string)
+	a.Proto = make(map[string]string)
 	a.Custom = make(map[string]map[string]string)
 	return a
 }
@@ -87,6 +89,13 @@ func (a *Help) Render() (res []byte) {
 	list = append(list, "")
 	list = append(list, "Clickhouse:")
 	for k, v := range a.Clickhouse {
+		list = append(list, Status(k, v))
+	}
+
+	// proto
+	list = append(list, "")
+	list = append(list, "PROTO:")
+	for k, v := range a.Proto {
 		list = append(list, Status(k, v))
 	}
 

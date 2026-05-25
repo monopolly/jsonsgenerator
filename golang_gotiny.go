@@ -14,7 +14,7 @@ func (a *Golang) Gotiny() []byte {
 	var list []string
 	list = append(list, "\n")
 	list = append(list, "//gotiny marshal")
-	list = append(list, fmt.Sprintf("func (a *%s) Gotiny() []byte { ", settings.Go.StructName))
+	list = append(list, fmt.Sprintf("func (a *%s) MarshalGotiny() []byte { ", settings.Go.StructName))
 
 	var names []string
 	for _, x := range fields {
@@ -37,7 +37,7 @@ func (a *Golang) GotinyUnmarshall() []byte {
 	var list []string
 	list = append(list, "\n")
 	list = append(list, "//parse gotiny")
-	list = append(list, fmt.Sprintf("func Parse%[1]sGotiny(v []byte) (a %[1]s) { ", settings.Go.StructName))
+	list = append(list, fmt.Sprintf("func Unmarshal%[1]sGotiny(v []byte) (a %[1]s) { ", settings.Go.StructName))
 	// list = append(list, fmt.Sprintf( "var a %s",settings.Go.StructName))
 
 	var names []string

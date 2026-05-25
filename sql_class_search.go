@@ -37,12 +37,16 @@ func (a *SQL) Search() []byte {
 		if err != nil {
 			continue
 		}
+		if len(v) != len(fields){
+			continue
+		}
 
 		for pos, x := range fields {
 			item.Update(x.String(), v[pos])
 		}
 		res = append(res, &item)
 	}
+	err = rows.Err()
 
 	return
 }`

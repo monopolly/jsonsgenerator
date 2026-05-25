@@ -37,6 +37,7 @@ func (a *SQL) File() []byte {
 
 	var list, fieldList, primary []string
 	unique := make(map[string]map[string]bool)
+	var hasPrimary bool
 
 	//list = append(list, fmt.Sprintf(`drop table if exists %s;`, table))
 	list = append(list, fmt.Sprintf(`--drop table %s;`, settings.SQL.Table))
@@ -52,6 +53,9 @@ func (a *SQL) File() []byte {
 	for _, x := range fields {
 		if len(x.SQL.Name) > pad {
 			pad = len(x.SQL.Name)
+		}
+		if !x.SQL.Skip && x.SQL.Primary {
+			hasPrimary = true
 		}
 	}
 
@@ -118,7 +122,12 @@ func (a *SQL) File() []byte {
 
 		switch x.SQL.Inc {
 		case true:
-			sqlFieldLine = append(sqlFieldLine, "bigserial primary key")
+			switch hasPrimary {
+			case true:
+				sqlFieldLine = append(sqlFieldLine, "bigserial")
+			case false:
+				sqlFieldLine = append(sqlFieldLine, "bigserial primary key")
+			}
 		case false:
 			switch x.SQL.Replace != "" {
 			case true:

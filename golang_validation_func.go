@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// парсер для изначальной структуры в []intefacr{}
+// parser from the original struct to []interface{}
 func (a *Golang) Valid() []byte {
 
 	lines := []string{
@@ -31,7 +31,7 @@ func (a *Golang) Valid() []byte {
 			condition = `== ""`
 		case "bool":
 			condition = " == false"
-		case "any", "inteface{}":
+		case "any":
 			condition = "== nil"
 		default:
 			switch {

@@ -21,7 +21,7 @@ func (a *SQL) Has() []byte {
 		defer conn.Release()
 	`)
 
-	q := `q := fmt.Sprintf("select exists (select id from TableName where %s = $1 limit 1)", field.SQLName())`
+	q := `q := fmt.Sprintf("select exists (select 1 from TableName where %s = $1 limit 1)", field.SQLName())`
 	q = strings.ReplaceAll(q, "TableName", settings.SQL.Table)
 	list = append(list, q)
 

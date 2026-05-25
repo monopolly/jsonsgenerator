@@ -22,7 +22,7 @@ func (a *SQL) InsertNoConflict() []byte {
 	}
 }
 
-// парсер для изначальной структуры в []intefacr{}
+// parser from the original struct to []interface{}
 func (a *SQL) insertTuple() (list []string) {
 
 	for _, x := range fields {

@@ -14,21 +14,16 @@ func (a *SQL) CreateTable() []byte {
 	list = append(list, "//Create table")
 	list = append(list, fmt.Sprintf(`func (a *%s) CreateTable() (err error) {`, settings.SQL.Class))
 
-	list = append(list, `
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-		if err != nil {
-			return
-		}
-		defer conn.Release()
-	`)
+	list = append(list, `return a.Conn(func(conn *pgxpool.Conn) (err error) {`)
 
 	q := "q := `sql`"
 	q = tools.Replace(q, "sql", a.createTableSQL())
-
 	list = append(list, q)
-	list = append(list, `_, err = conn.Exec(c, q)`)
+	list = append(list, `_, err = conn.Exec(context.Background(), q)`)
 	list = append(list, "return")
+
+	list = append(list, `})`)
+
 	list = append(list, "}")
 
 	return []byte(strings.Join(list, "\n"))
@@ -55,6 +50,7 @@ func (a *SQL) createTableSQL() (res string) {
 
 	var list, fieldList, primary []string
 	unique := make(map[string]map[string]bool)
+	var hasPrimary bool
 
 	list = append(list, fmt.Sprintf(`create table if not exists %s (`, settings.SQL.Table))
 
@@ -65,6 +61,9 @@ func (a *SQL) createTableSQL() (res string) {
 	for _, x := range fields {
 		if len(x.SQL.Name) > pad {
 			pad = len(x.SQL.Name)
+		}
+		if !x.SQL.Skip && x.SQL.Primary {
+			hasPrimary = true
 		}
 	}
 
@@ -103,7 +102,12 @@ func (a *SQL) createTableSQL() (res string) {
 
 		switch x.SQL.Inc {
 		case true:
-			sqlFieldLine = append(sqlFieldLine, "bigserial primary key")
+			switch hasPrimary {
+			case true:
+				sqlFieldLine = append(sqlFieldLine, "bigserial")
+			case false:
+				sqlFieldLine = append(sqlFieldLine, "bigserial primary key")
+			}
 		case false:
 			switch x.SQL.Replace != "" {
 			case true:

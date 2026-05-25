@@ -6,9 +6,13 @@ import (
 
 // insert sql query
 func GoTypeToSQLType(x *Field) {
+	goType := x.Type
+	if x.Go.Type != "" {
+		goType = x.Go.Type
+	}
 
 	// detect sql type
-	switch x.Type {
+	switch goType {
 	case "int", "int64", "uint", "uint64", "time.Duration":
 		x.SQL.Type = "bigint"
 	case "int16", "int32", "uint32":
@@ -25,11 +29,11 @@ func GoTypeToSQLType(x *Field) {
 		x.SQL.Type = "bytea"
 	default:
 		switch {
-		case strings.HasPrefix(x.Type, "[]"):
+		case strings.HasPrefix(goType, "[]"):
 			x.SQL.Type = "jsonb"
 			x.SQL.JsonbArray = true
 			x.SQL.Default.Value = "default '[]'::jsonb" //by default for later updates
-		case strings.HasPrefix(x.Type, "map["):
+		case strings.HasPrefix(goType, "map["):
 			x.SQL.Type = "jsonb"
 			x.SQL.Default.Value = "default '{}'::jsonb" //by default for later updates
 		default:

@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// индекс это номера полей для json
+// index stores json field numbers
 func (a *Golang) generateParseTupleToJsons() []byte {
 
 	parse := []string{

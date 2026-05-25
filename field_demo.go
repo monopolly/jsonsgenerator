@@ -54,10 +54,30 @@ func (a *Field) JsonDemo() (k string, v any) {
 		v = []byte(`{"rawjson": true, "or":"any bytes data"}`)
 	case "[]string":
 		v = []string{"one", "two", "three"}
-	case "[]int", "[]int32", "[]uint", "[]uint8", "[]uint32", "[]int8", "[]int64", "[]uint64":
+	case "[]int":
 		v = []int{1, 2, 3, 4, 5}
-	case "[]float64", "[]float32":
+	case "[]int8":
+		v = []int8{1, 2, 3, 4, 5}
+	case "[]int16":
+		v = []int16{1, 2, 3, 4, 5}
+	case "[]int32":
+		v = []int32{1, 2, 3, 4, 5}
+	case "[]int64":
+		v = []int64{1, 2, 3, 4, 5}
+	case "[]uint":
+		v = []uint{1, 2, 3, 4, 5}
+	case "[]uint8":
+		v = []uint8{1, 2, 3, 4, 5}
+	case "[]uint16":
+		v = []uint16{1, 2, 3, 4, 5}
+	case "[]uint32":
+		v = []uint32{1, 2, 3, 4, 5}
+	case "[]uint64":
+		v = []uint64{1, 2, 3, 4, 5}
+	case "[]float64":
 		v = []float64{0.421, 0.2456, 0.24114}
+	case "[]float32":
+		v = []float32{0.421, 0.2456, 0.24114}
 	case "byte":
 		v = 'b'
 	case "any":

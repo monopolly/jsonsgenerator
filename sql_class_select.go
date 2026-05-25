@@ -40,7 +40,8 @@ func (a *SQL) Select() []byte {
 	`)
 
 	list = append(list, `q := fmt.Sprintf("select %s ", fieldlist)`)
-	list = append(list, fmt.Sprintf(`q = q + "from %s where " + where`, settings.SQL.Table))
+	list = append(list, fmt.Sprintf(`q = q + "from %s"`, settings.SQL.Table))
+	list = append(list, `if where != "" { q += " where " + where }`)
 	// list = append(list, fmt.Sprintf(`res = new(%s)`, settings.Go.StructName))
 
 	s := `rows, err := conn.Query(c, q)
@@ -55,12 +56,16 @@ func (a *SQL) Select() []byte {
 		if err != nil {
 			continue
 		}
+		if len(v) != len(fields){
+			continue
+		}
 
 		for pos, x := range fields {
 			item.Update(x.String(), v[pos])
 		}
 		res = append(res, &item)
-	}`
+	}
+	err = rows.Err()`
 
 	// s = tools.Replace(s, "sqlQueryName", settings.SQL.QueryName)
 	s = tools.Replace(s, "goStruct", settings.Go.StructName)

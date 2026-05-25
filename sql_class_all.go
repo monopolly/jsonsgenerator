@@ -67,6 +67,7 @@ func (a *SQL) All() []byte {
 		}
 		res = append(res, &item)
 	}
+	err = rows.Err()
 	
 	`, settings.Go.StructName),
 	)

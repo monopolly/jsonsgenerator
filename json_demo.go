@@ -2,7 +2,7 @@ package main
 
 import jsoniter "github.com/json-iterator/go"
 
-// генерит New() для jsons структуры
+// generates New() for jsons struct
 func jsonDemo() []byte {
 	list := map[string]any{}
 	for _, x := range fields {

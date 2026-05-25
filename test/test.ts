@@ -50,4 +50,10 @@ type news = {
 	sql_jsonb_index:            Record<string, any>
 	time_duration:              number
 	go_type_int_to_strings:     number
+	public_field1:              number
+	public_field2:              number
+	public_field3:              number
+	public_field_me1:           number
+	public_field_me2:           number
+	public_field_me3:           number
 }

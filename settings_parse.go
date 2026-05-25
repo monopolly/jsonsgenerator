@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/monopolly/cast"
 	"github.com/monopolly/jsonsgenerator/tools"
 
 	"github.com/monopolly/structs"
@@ -14,58 +15,86 @@ func (a *Settings) Parse(in string) {
 	// ast parse
 	res := structs.Parse(in)
 
+	// package name "model"
 	a.PackageName = res.Package
+
+	// origin struct name "news"
 	a.Origin = res.Name
 
+	// is debug
 	a.Debug = res.Options["debug"] != nil
 	helps.Struct["debug"] = "Debug mode"
 
-	// options
+	// lock
 	helps.Struct["lock"] = "Lock model for generation. Can't change model."
 	if res.Options["lock"] != nil {
 		panic("Locked for generate! Be carefull!")
 	}
 
+	// no init
 	a.Options.Noinit = res.Options["noinit"] != nil
 	helps.Struct["noinit"] = "No New() init function for struct"
 
+	// gotiny
 	a.Go.Gotiny = res.Options["gotiny"] != nil
 	helps.Struct["gotiny"] = "Create gotiny marshal/unmarshal"
 
+	// message pack
 	a.Go.MessagePack = res.Options["msgp"] != nil
 	helps.Struct["msgp"] = "Create message pack marshal/unmarshal"
 
+	// no omit for json
 	a.Go.NoOmit = res.Options["!omit"] != nil
 	helps.Struct["!omit"] = "No omit tag for json"
 
-	a.Go.StructName, _ = res.Options["go"].(string)
+	// goname
+	a.Go.StructName = optionName(res.Options, "go", tools.Title(a.Origin))
 	helps.Struct["go=News"] = "Set golang struct names. Ex: go=News1 > type News1 struct{}"
 
-	a.Go.StructName, _ = res.Options["go"].(string)
-	helps.Struct["go=News"] = "Set golang struct names. Ex: go=News1 > type News1 struct{}"
-
-	a.JS.Name, _ = res.Options["js"].(string)
+	// js
+	a.JS.Name = optionName(res.Options, "js", fmt.Sprintf("%sJson", tools.Title(a.Origin)))
 	helps.Struct["js=NewsJson"] = "Change json struct names. Ex: js=NewsJson"
 
-	a.TS.Name, _ = res.Options["ts"].(string)
+	// proto
+	a.Proto.Name = optionName(res.Options, "proto", fmt.Sprintf("%sProto", a.Go.StructName))
+	a.Proto.Package = a.PackageName
+	helps.Struct["proto=NewsProto"] = "Generate proto file and compile to current package"
+
+	// ts
+	a.TS.Name = cast.String(res.Options["ts"])
 	helps.Struct["ts=news"] = "Set typescript struct names. Ex: ts=NewsJson"
 
+	// swift
 	a.Swift.Model = res.Options["swift"] != nil
 	helps.Struct["swift"] = "Generate swift model"
 
-	a.Swift.Enum, _ = res.Options["enum"].(string)
+	// swift enum
+	a.Swift.Enum = cast.String(res.Options["enum"])
 	helps.Struct["enum"] = "Generate swift enum"
 
+	// generate json demo
 	a.Options.Demo = res.Options["demo"] != nil
 	helps.Struct["demo"] = "Generate demo json file with default values"
 
+	// generate json demo
+	a.Options.Optimize = res.Options["optimize"] != nil
+	helps.Struct["optimize"] = "Try to create golang padding optimized struct"
+
+	// generate tests
+	a.Options.Test = res.Options["test"] != nil
+	helps.Struct["test"] = "Generate go tests for generated model"
+
+	// simple index name NewsIndexID > IndexID (if 1 struct in package)
 	a.Go.NoPrefix = res.Options["noprefix"] != nil
 	helps.Struct["noprefix"] = "Generate simple index IndexID instead IndexNewsID"
 
-	a.SQL.Table, _ = res.Options["sql"].(string)
+	// sql
+	a.SQL.Table = optionName(res.Options, "sql", a.Origin)
 	helps.Struct["sql=news"] = "Set sql table name. Ex: sql=accounts"
 
-	a.Clickhouse.Table, _ = res.Options["ch"].(string)
+	// clickhouse
+	a.Clickhouse.Table = optionName(res.Options, "ch", a.Origin)
+	a.Clickhouse.Engine = cast.String(res.Options["chengine"])
 	helps.Struct["ch=views"] = "Set clickhouse sql table name. Ex: ch=views"
 	helps.Struct["chengine=MergeTree"] = "Optional, mergeTree by default"
 
@@ -74,18 +103,14 @@ func (a *Settings) Parse(in string) {
 	}
 
 	// sql class
-	// a.SQL.ClassVarName = fmt.Sprintf("%sSQL", a.Go.StructName)
 	a.SQL.Class = fmt.Sprintf("%sSQL", a.Go.StructName) //fmt.Sprintf("sql%s", a.Go.StructName)
 	a.SQL.QueryName = fmt.Sprintf("%sQuery", a.Go.StructName)
 
-	// sql class
-	// a.Clickhouse.ClassVarName = fmt.Sprintf("%sCHSQL", a.Go.StructName)
+	// clickhouse class
+	a.Clickhouse.Class = fmt.Sprintf("%sCQL", a.Go.StructName)
+	a.Clickhouse.QueryName = fmt.Sprintf("%sClickhouseQuery", a.Go.StructName)
 
-	// a.Clickhouse.Class = fmt.Sprintf("%sClickhouseSQL", a.Go.StructName)
-	// a.Clickhouse.QueryName = fmt.Sprintf("%sClickhouseQuery", a.Go.StructName)
-	// a.Clickhouse.Engine, _ = res.Options["chengine"].(string)
-
-	// index type name
+	// indextype
 	a.IndexTypeName = fmt.Sprintf("%sIndexType", a.Go.StructName)
 
 	// fields
@@ -105,6 +130,14 @@ func (a *Settings) Parse(in string) {
 		fields = append(fields, &p)
 	}
 
+	// fmt.Println("before", fields)
+	a.StructSize = StructSize(fields)
+	if a.Options.Optimize {
+		Optimize(fields)
+	}
+
+	// fmt.Println("after", fields)
+
 	if len(fieldnameSQLErrors) > 0 {
 		panic(fmt.Sprintf("%s — can't use as SQL field name", strings.Join(fieldnameSQLErrors, ", ")))
 	}
@@ -113,4 +146,29 @@ func (a *Settings) Parse(in string) {
 		return
 	}
 
+}
+
+func optionName(options map[string]any, key, defaultValue string) string {
+	v, ok := options[key]
+	if !ok {
+		return ""
+	}
+	switch value := v.(type) {
+	case bool:
+		if value {
+			return defaultValue
+		}
+		return ""
+	case string:
+		if value == "" {
+			return defaultValue
+		}
+		return value
+	default:
+		res := cast.String(v)
+		if res == "" {
+			return defaultValue
+		}
+		return res
+	}
 }

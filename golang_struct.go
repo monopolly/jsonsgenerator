@@ -5,15 +5,16 @@ import (
 	"strings"
 )
 
-// название полей для json
+// field names for json
 func (a *Golang) Struct() []byte {
 
-	//список
+	// list
 	var list, structComments []string
 
 	// struct
 	list = append(list, "\n")
-	list = append(list, fmt.Sprintf("//%s", strings.Join(structComments, " ")))
+	list = append(list, fmt.Sprintf("//%s", strings.Join(append(structComments, fmt.Sprintf("%d bytes (go padding)", settings.StructSize)), " ")))
+	list = append(list, "//easyjson:json")
 	list = append(list, fmt.Sprintf(`type %s struct {`, settings.Go.StructName))
 
 	for _, x := range fields {

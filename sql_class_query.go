@@ -85,7 +85,7 @@ func (a *SQL) Query() []byte {
 	
 		var fieldsStrings []string
 		for _, x := range fields {
-			fieldsStrings = append(fieldsStrings, x.String())
+			fieldsStrings = append(fieldsStrings, x.SQLName())
 		}
 	
 		for k, v := range a.EQ {
@@ -134,18 +134,19 @@ func (a *SQL) Query() []byte {
 				continue
 			}
 			p := GoStructNameKeyIndex(k)
+			sqlName := p.SQLName()
 			switch p.Type() {
 			case "bool":
 				switch cast.Bool(v){
 				case true:
-					andlist = append(andlist, k)
+					andlist = append(andlist, sqlName)
 				case false:
-					andlist = append(andlist, fmt.Sprintf("(not %[1]s or %[1]s is null)",k))
+					andlist = append(andlist, fmt.Sprintf("(not %[1]s or %[1]s is null)", sqlName))
 				}
 				
 			default:
 				count++
-				andlist = append(andlist, fmt.Sprintf("%s = $%d", k, count))
+				andlist = append(andlist, fmt.Sprintf("%s = $%d", sqlName, count))
 				values = append(values, v)
 			}
 		}
@@ -156,8 +157,9 @@ func (a *SQL) Query() []byte {
 			if !GoStructNameValidKey(k) {
 				continue
 			}
+			sqlName := GoStructNameKeyIndex(k).SQLName()
 			count++
-			andlist = append(andlist, fmt.Sprintf("%s > $%d", k, count))
+			andlist = append(andlist, fmt.Sprintf("%s > $%d", sqlName, count))
 			values = append(values, v)
 		}
 	
@@ -166,8 +168,9 @@ func (a *SQL) Query() []byte {
 			if !GoStructNameValidKey(k) {
 				continue
 			}
+			sqlName := GoStructNameKeyIndex(k).SQLName()
 			count++
-			andlist = append(andlist, fmt.Sprintf("%s < $%d", k, count))
+			andlist = append(andlist, fmt.Sprintf("%s < $%d", sqlName, count))
 			values = append(values, v)
 		}
 
@@ -176,10 +179,11 @@ func (a *SQL) Query() []byte {
 			if !GoStructNameValidKey(k) {
 				continue
 			}
+			sqlName := GoStructNameKeyIndex(k).SQLName()
 
 			for _,x:= range v{
 				count++
-				andlist = append(andlist, fmt.Sprintf("%s != $%d", k, count))
+				andlist = append(andlist, fmt.Sprintf("%s != $%d", sqlName, count))
 				values = append(values, x)
 			}
 			
@@ -190,8 +194,9 @@ func (a *SQL) Query() []byte {
 			if !GoStructNameValidKey(k) {
 				continue
 			}
+			sqlName := GoStructNameKeyIndex(k).SQLName()
 			count++			
-			andlist = append(andlist, fmt.Sprintf("%s ilike $%d", k, count))			
+			andlist = append(andlist, fmt.Sprintf("%s ilike $%d", sqlName, count))			
 			values = append(values, "%"+v+"%")
 		}
 		
@@ -201,13 +206,35 @@ func (a *SQL) Query() []byte {
 				if !GoStructNameValidKey(k) {
 					continue
 				}
+					sqlName := GoStructNameKeyIndex(k).SQLName()
 					var inlist []string
 					for _,num :=range v{
-						inlist = append(inlist, fmt.Sprint(num))
+						count++
+						inlist = append(inlist, fmt.Sprintf("$%d", count))
+						values = append(values, num)
 					}
-				count++			
-				andlist = append(andlist, fmt.Sprintf("%s in (%s)", k, strings.Join(inlist,",")))			
-				// values = append(values, string)
+				if len(inlist) > 0 {
+					andlist = append(andlist, fmt.Sprintf("%s in (%s)", sqlName, strings.Join(inlist,",")))
+				}
+			}
+		}
+
+		// INS where
+		if a.INS != nil {
+			for k, v := range a.INS {
+				if !GoStructNameValidKey(k) {
+					continue
+				}
+				sqlName := GoStructNameKeyIndex(k).SQLName()
+				var inlist []string
+				for _,str :=range v{
+					count++
+					inlist = append(inlist, fmt.Sprintf("$%d", count))
+					values = append(values, str)
+				}
+				if len(inlist) > 0 {
+					andlist = append(andlist, fmt.Sprintf("%s in (%s)", sqlName, strings.Join(inlist,",")))
+				}
 			}
 		}
 		
@@ -218,8 +245,9 @@ func (a *SQL) Query() []byte {
 				if !GoStructNameValidKey(k) {
 					continue
 				}
+				sqlName := GoStructNameKeyIndex(k).SQLName()
 				count++			
-				andlist = append(andlist, fmt.Sprintf("%s in (%s)", k, v))							
+				andlist = append(andlist, fmt.Sprintf("%s in (%s)", sqlName, v))							
 			}
 		}
 
@@ -235,7 +263,7 @@ func (a *SQL) Query() []byte {
 	
 		// sort by
 		if a.Sort != "" && GoStructNameValidKey(a.Sort) {
-			list = append(list, fmt.Sprintf("order by %s", a.Sort))
+			list = append(list, fmt.Sprintf("order by %s", GoStructNameKeyIndex(a.Sort).SQLName()))
 			if a.Desc {
 				list = append(list, "desc")
 			}
@@ -258,11 +286,21 @@ func (a *SQL) Query() []byte {
 	s = tools.Replace(s, "sqlQueryName", settings.SQL.QueryName)
 	s = tools.Replace(s, "GoStructName", settings.Go.StructName)
 	s = tools.Replace(s, "indexTypeName", settings.IndexTypeName)
-	s = tools.Replace(s, "indexList", strings.Join(settings.Go.Indexes, ", "))
+	s = tools.Replace(s, "indexList", strings.Join(a.sqlIndexes(), ", "))
 	s = tools.Replace(s, "{{tablename}}", settings.SQL.Table)
 
 	list = append(list, s)
 	list = append(list, "\n\n")
 
 	return []byte(strings.Join(list, "\n"))
+}
+
+func (a *SQL) sqlIndexes() (res []string) {
+	for _, x := range fields {
+		if x.SQL.Skip {
+			continue
+		}
+		res = append(res, x.Go.Index)
+	}
+	return
 }

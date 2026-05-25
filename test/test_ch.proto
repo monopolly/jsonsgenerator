@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package news;
+
+option go_package = "./;news";
+
+message StatProto {
+  int64 id = 1;
+  int64 uid = 2;
+  int64 type = 3;
+  string name = 4;
+  string source = 5;
+  string ip = 6;
+  bool image = 7;
+  repeated string stack = 8;
+  repeated uint64 uints = 9;
+  bytes uints8 = 10;
+  repeated uint32 uints16 = 11;
+  repeated uint32 uints32 = 12;
+  repeated uint64 uints64 = 13;
+  repeated int32 ints8 = 14;
+  repeated int32 ints16 = 15;
+  repeated int32 ints32 = 16;
+  repeated int64 ints64 = 17;
+}

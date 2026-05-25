@@ -73,9 +73,9 @@ func TestGotiny(ggggg *testing.T) {
 	a := assert.New(ggggg)
 	_ = a
 
-	p := testStructure()
-	b := p.Gotiny()
-	fmt.Println("gotiny size", len(b))
+	// p := testStructure()
+	// // b := p.Gotiny()
+	// fmt.Println("gotiny size", len(b))
 
 	// p1 := ParseNewsGotiny(b)
 
@@ -206,19 +206,19 @@ func BenchmarkJSONFastParallel(bbbbbbbb *testing.B) {
 }
 
 func BenchmarkGotiny(bbbbbbbb *testing.B) {
-	p := testStructure()
+	// p := testStructure()
 	bbbbbbbb.ReportAllocs()
 	bbbbbbbb.ResetTimer()
 	for n := 0; n < bbbbbbbb.N; n++ {
-		p.Gotiny()
+		// p.Gotiny()
 	}
 }
 
 func BenchmarkGotinyParallel(bbbbbbbb *testing.B) {
-	p := testStructure()
+	// p := testStructure()
 	bbbbbbbb.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			p.Gotiny()
+			// p.Gotiny()
 		}
 	})
 }

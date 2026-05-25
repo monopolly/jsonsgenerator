@@ -10,7 +10,7 @@ func (a *Golang) IndexStrings() []byte {
 
 	prefix := "Field"
 
-	//список
+	// list
 	var list []string
 	list = append(list, "\n")
 	list = append(list, "//string index")

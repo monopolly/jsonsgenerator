@@ -2,7 +2,7 @@
 enum Category: String {
 
 	//case
-	case inc, ints, ints8, ints16, ints32, ints64, uints, uints8, uints16, uints32, uints64, floats32, floats64, bools, byte1, bytes, list_ints, list_string, list_float, map_string_string, map_string_bytes, map_string_bool, map_string_int, map_string_float64, map_string_any, map_int_string, map_int_int, map_int_bool, renameSQL, renameGO, renameJS_OK, mast_upper_go, intToSmallInt, sql_unique_u1_1, sql_unique_u1_2, sql_index1_1, sql_index1_2, sql_index1_3, sql_keys_1, sql_keys_2, sql_keys_3, sql_search, sql_get, sql_unique_x1, sql_unique_x2, sql_unique_x1_x2, sql_primary, sql_jsonb_index, time_duration, go_type_int_to_strings
+	case inc, ints, ints8, ints16, ints32, ints64, uints, uints8, uints16, uints32, uints64, floats32, floats64, bools, byte1, bytes, list_ints, list_string, list_float, map_string_string, map_string_bytes, map_string_bool, map_string_int, map_string_float64, map_string_any, map_int_string, map_int_int, map_int_bool, renameSQL, renameGO, renameJS_OK, mast_upper_go, intToSmallInt, sql_unique_u1_1, sql_unique_u1_2, sql_index1_1, sql_index1_2, sql_index1_3, sql_keys_1, sql_keys_2, sql_keys_3, sql_search, sql_get, sql_unique_x1, sql_unique_x2, sql_unique_x1_x2, sql_primary, sql_jsonb_index, time_duration, go_type_int_to_strings, public_field1, public_field2, public_field3, public_field_me1, public_field_me2, public_field_me3
 
 	//name
 	var string: String {
@@ -58,6 +58,12 @@ enum Category: String {
 				case .sql_jsonb_index:         return "sql_jsonb_index"
 				case .time_duration:           return "time_duration"
 				case .go_type_int_to_strings:  return "go_type_int_to_strings"
+				case .public_field1:           return "public_field1"
+				case .public_field2:           return "public_field2"
+				case .public_field3:           return "public_field3"
+				case .public_field_me1:        return "public_field_me1"
+				case .public_field_me2:        return "public_field_me2"
+				case .public_field_me3:        return "public_field_me3"
 			}
 		}
 	}
@@ -116,6 +122,12 @@ enum Category: String {
 				case .sql_jsonb_index:         return "Sql_jsonb_index"
 				case .time_duration:           return "Time_duration"
 				case .go_type_int_to_strings:  return "Go_type_int_to_strings"
+				case .public_field1:           return "Public_field1"
+				case .public_field2:           return "Public_field2"
+				case .public_field3:           return "Public_field3"
+				case .public_field_me1:        return "Public_field_me1"
+				case .public_field_me2:        return "Public_field_me2"
+				case .public_field_me3:        return "Public_field_me3"
 			}
 		}
 	}

@@ -36,6 +36,10 @@ func (a *SQL) updateJsonbMap(x *Field) []byte {
 	var list []string
 	list = append(list, "\n//update sql query")
 	list = append(list, fmt.Sprintf(`func (a *%s) Update%s(id any, k string, v any, where ...string) (err error) {`, settings.SQL.Class, x.Go.Name))
+	incField := "id"
+	if settings.Fields.IncField != "" {
+		incField = settings.Fields.IncField
+	}
 
 	list = append(list, `
 	c := context.Background()
@@ -52,7 +56,7 @@ func (a *SQL) updateJsonbMap(x *Field) []byte {
 
 	list = append(list, `//json escape`)
 	list = append(list, `res := strings.ReplaceAll(jsons.Creates(k, v).String(), "$$", "$ $")`)
-	list = append(list, `q := fmt.Sprintf("`+sql+` || $$%s$$::jsonb where id = $1",  res)`)
+	list = append(list, `q := fmt.Sprintf("`+sql+` || $$%s$$::jsonb where `+incField+` = $1",  res)`)
 	list = append(list, `if len(where) > 0 {q += " and "+ where[0]}`)
 	list = append(list, `_,err = conn.Exec(c, q, id)`)
 	list = append(list, "return")
@@ -67,6 +71,10 @@ func (a *SQL) deleteJsonbMapKey(x *Field) []byte {
 	var list []string
 	list = append(list, "\n//delete key from jsonb")
 	list = append(list, fmt.Sprintf(`func (a *%s) DeleteKey%s(id any, k string, where ...string) (err error) {`, settings.SQL.Class, x.Go.Name))
+	incField := "id"
+	if settings.Fields.IncField != "" {
+		incField = settings.Fields.IncField
+	}
 
 	list = append(list, `
 	c := context.Background()
@@ -77,7 +85,7 @@ func (a *SQL) deleteJsonbMapKey(x *Field) []byte {
 		defer conn.Release()
 	`)
 
-	sql := `"update tableName set sqlFieldName = sqlFieldName - $1 where id = $2"`
+	sql := `"update tableName set sqlFieldName = sqlFieldName - $1 where ` + incField + ` = $2"`
 	sql = tools.Replace(sql, "tableName", settings.SQL.Table)
 	sql = tools.Replace(sql, "sqlFieldName", x.SQL.Name)
 
@@ -96,6 +104,10 @@ func (a *SQL) renameJsonbMapKey(x *Field) []byte {
 	var list []string
 	list = append(list, "\n//rename map key jsonb")
 	list = append(list, fmt.Sprintf(`func (a *%s) RenameKey%s(id any, k, newkey string) (err error) {`, settings.SQL.Class, x.Go.Name))
+	incField := "id"
+	if settings.Fields.IncField != "" {
+		incField = settings.Fields.IncField
+	}
 
 	list = append(list, `
 	c := context.Background()
@@ -106,7 +118,7 @@ func (a *SQL) renameJsonbMapKey(x *Field) []byte {
 		defer conn.Release()
 	`)
 
-	sql := `"update tableName set sqlFieldName = sqlFieldName - $1 || jsonb_build_object($2, sqlFieldName->$1) where id = $3"`
+	sql := `"update tableName set sqlFieldName = sqlFieldName - $1 || jsonb_build_object($2, sqlFieldName->$1) where ` + incField + ` = $3"`
 	sql = tools.Replace(sql, "tableName", settings.SQL.Table)
 	sql = tools.Replace(sql, "sqlFieldName", x.SQL.Name)
 
@@ -218,7 +230,7 @@ func (a *SQL) updateJsonbArray(x *Field) []byte {
 	sql = "update tableName set sqlFieldName = sqlFieldName"
 	sql = tools.Replace(sql, "tableName", settings.SQL.Table)
 	sql = tools.Replace(sql, "sqlFieldName", x.SQL.Name)
-	list = append(list, `q := fmt.Sprintf("`+sql+` - $1 where `+incField+` = $2")`)
+	list = append(list, `q := "`+sql+` - $1 where `+incField+` = $2"`)
 	list = append(list, `if len(where) > 0 {q += " and "+ where[0]}`)
 	list = append(list, "_,err = conn.Exec(c, q, v, id)")
 	list = append(list, "return")
