@@ -12,9 +12,9 @@ func (a *SQL) Conn() []byte {
 	list = append(list, "\n//delete item")
 	list = append(list, fmt.Sprintf(`
 	func (a *%s) Conn(f func(conn *pgxpool.Conn) (err error)) (err error) {
-			
+
 			conn, err := a.pool.Acquire(context.Background())
-			if err != nil {		
+			if err != nil {
 				return
 			}
 			defer conn.Release()

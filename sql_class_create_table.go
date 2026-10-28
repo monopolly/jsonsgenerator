@@ -48,9 +48,9 @@ func (a *SQL) createTableSQL() (res string) {
 		verify  	boolean default false,
 	  	meta    	jsonb default '{}'::jsonb */
 
-	var list, fieldList, primary []string
+	var list, fieldList []string
 	unique := make(map[string]map[string]bool)
-	var hasPrimary bool
+	hasPrimary := len(a.primaryKeys()) > 0
 
 	list = append(list, fmt.Sprintf(`create table if not exists %s (`, settings.SQL.Table))
 
@@ -62,18 +62,11 @@ func (a *SQL) createTableSQL() (res string) {
 		if len(x.SQL.Name) > pad {
 			pad = len(x.SQL.Name)
 		}
-		if !x.SQL.Skip && x.SQL.Primary {
-			hasPrimary = true
-		}
 	}
 
 	for _, x := range fields {
 		if x.SQL.Skip {
 			continue
-		}
-
-		if x.SQL.Primary {
-			primary = append(primary, x.SQL.Name)
 		}
 
 		for _, groupname := range x.SQL.Index.Group {
@@ -127,6 +120,9 @@ func (a *SQL) createTableSQL() (res string) {
 			sqlFieldLine = append(sqlFieldLine, x.SQL.Default.Value)
 		}
 
+		// single primary key
+		sqlFieldLine = a.primaryKeyField(x, sqlFieldLine)
+
 		sqltype := fmt.Sprintf("\t%s%s%s", x.SQL.Name, strings.Repeat(" ", (pad+5)-len(x.SQL.Name)), strings.Join(sqlFieldLine, " "))
 		fieldList = append(fieldList, sqltype)
 
@@ -142,8 +138,8 @@ func (a *SQL) createTableSQL() (res string) {
 	}
 
 	// primary keys
-	if primary != nil {
-		fieldList = append(fieldList, fmt.Sprintf("\tprimary key (%s)", strings.Join(primary, ",")))
+	if primary := a.primaryKeySQL(); primary != "" {
+		fieldList = append(fieldList, primary)
 	}
 
 	list = append(list, strings.Join(fieldList, ",\n"))

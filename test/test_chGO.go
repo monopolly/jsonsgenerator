@@ -5,6 +5,13 @@ import (
 	json "encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"reflect"
+	"strings"
+	"sync"
+	"time"
+	"unsafe"
+
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/jackc/pgx/v5/pgxpool"
 	jsoniter "github.com/json-iterator/go"
@@ -16,12 +23,6 @@ import (
 	"github.com/niubaoshu/gotiny"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	"net"
-	"reflect"
-	"strings"
-	"sync"
-	"time"
-	"unsafe"
 )
 
 /*
@@ -33,132 +34,132 @@ import (
 	Ex: //! [] go=News js=NewsJson sql=news noinit up...
 
 	STRUCT:
-	!omit                         No omit tag for json
-	demo                          Generate demo json file with default values
-	noinit                        No New() init function for struct
-	go=News                       Set golang struct names. Ex: go=News1 > type News1 struct{}
-	js=NewsJson                   Change json struct names. Ex: js=NewsJson
-	ts=news                       Set typescript struct names. Ex: ts=NewsJson
-	optimize                      Try to create golang padding optimized struct
 	sql=news                      Set sql table name. Ex: sql=accounts
-	lock                          Lock model for generation. Can't change model.
-	gotiny                        Create gotiny marshal/unmarshal
-	msgp                          Create message pack marshal/unmarshal
-	proto=NewsProto               Generate proto file and compile to current package
-	test                          Generate go tests for generated model
-	noprefix                      Generate simple index IndexID instead IndexNewsID
 	chengine=MergeTree            Optional, mergeTree by default
-	debug                         Debug mode
-	swift                         Generate swift model
 	enum                          Generate swift enum
+	debug                         Debug mode
+	js=NewsJson                   Change json struct names. Ex: js=NewsJson
 	ch=views                      Set clickhouse sql table name. Ex: ch=views
+	test                          Generate go tests for generated model
+	demo                          Generate demo json file with default values
+	optimize                      Try to create golang padding optimized struct
+	lock                          Lock model for generation. Can't change model.
+	noinit                        No New() init function for struct
+	msgp                          Create message pack marshal/unmarshal
+	!omit                         No omit tag for json
+	ts=news                       Set typescript struct names. Ex: ts=NewsJson
+	swift                         Generate swift model
+	gotiny                        Create gotiny marshal/unmarshal
+	go=News                       Set golang struct names. Ex: go=News1 > type News1 struct{}
+	proto=NewsProto               Generate proto file and compile to current package
+	noprefix                      Generate simple index IndexID instead IndexNewsID
 
 	Field:
-	title{}                       Add custom title for index. title{Nice & Sweet}
 	desc{}                        Add custom desc for index. desc{This field for success}
+	title{}                       Add custom title for index. title{Nice & Sweet}
 
 	GO:
+	title=""                      Add custom title for index
+	desc=""                       Add custom desc for index
+	title{}                       Add field user title title{Nice}
+	#                             Add lists for fields. Ex: id int //#readonly #must...
 	@                             Add custom structs for fields. Ex: id int //@public @team...
 	up                            Make uppercase for functions
 	must                          Create one validation function for all must fields
 	name=""                       Replace golang struct name. Ex: name="NewsList"
-	desc=""                       Add custom desc for index
 	req{}                         Add user required fields
-	#                             Add lists for fields. Ex: id int //#readonly #must...
+	desc{}                        Add field user title desc{Use it nice}
 	nofunc                        Do not create any jsons functions for fiels
 	type=""                       Replace golang type. Ex: type="[]*News"
-	title=""                      Add custom title for index
-	title{}                       Add field user title title{Nice}
-	desc{}                        Add field user title desc{Use it nice}
 
 	SQL:
-	unique="groupname"            Add unique fields constrains by group (you need set group name, then generator join fields). Ex: unique="group1" unique="group2"
+	defaults                      Add default value based on field type
+	add="primary key"             Append sql for field. Ex: replace="primary key"
 	renames="oldname"             Create an alter table record in SQL file. Rename table column.
+	noinsert                      Do use field for insert function
+	idx                           Add index fields by group name. Ex: idx="nameIndex" idx="credsIndex"
+	unix                          Add default value: extract(epoch from now())
+	skip                          Skip field for sql queries
+	replace="bigint primary key"  Rewrite sql for field. Ex: replace="bigint primary key"
+	type="jsonb"                  Rewrite sql type for field. Ex: type="jsonb"
+	unique="groupname"            Add unique fields constrains by group (you need set group name, then generator join fields). Ex: unique="group1" unique="group2"
+	ver="v4"                      Create an alter table record in SQL file. Add new column. With new version in comment. Ex: ver="2"
 	index                         Create simple default index or gin for jsonb
 	altertable                    Add field line Alter table to SQL file with current time comment
-	idx                           Add index fields by group name. Ex: idx="nameIndex" idx="credsIndex"
-	defaults                      Add default value based on field type
-	skip                          Skip field for sql queries
-	type="jsonb"                  Rewrite sql type for field. Ex: type="jsonb"
-	add="primary key"             Append sql for field. Ex: replace="primary key"
-	ver="v4"                      Create an alter table record in SQL file. Add new column. With new version in comment. Ex: ver="2"
-	noinsert                      Do use field for insert function
 	search                        Add tsvector index by group. Ex: search="tsv": tsv tsvector GENERATED ALWAYS AS (to_tsvector('simple', title || ' ' || brand)). For search: SELECT brand, title FROM assets WHERE search @@ to_tsquery('english', 'f8');
-	unix                          Add default value: extract(epoch from now())
-	replace="bigint primary key"  Rewrite sql for field. Ex: replace="bigint primary key"
 
 	Clickhouse:
-	low                           Wrap field type in LowCardinality(...)
 	type=ip                       Use ClickHouse IPv4 type for IP address fields
+	low                           Wrap field type in LowCardinality(...)
 
 	PROTO:
+	type="string"                 Rewrite proto type for field. Ex: type="google.protobuf.Value"
 	name="field"                  Rewrite proto field name
 	skip                          Skip field for proto
-	type="string"                 Rewrite proto type for field. Ex: type="google.protobuf.Value"
 
 	SWIFT:
+	must                          Swift field with required values
 	skip                          Ignore field for Swift
 	type=""                       Replace type for Swift model. Ex: type="string"
 	file=""                       Create another swift file for this field Swift model. file="f1", file="f2"
-	must                          Swift field with required values
 
 	JSON:
-	time                          Create convert jsons function for unixtime fields
-	raw                           Set Raw json function inside field
-	name=""                       Replace json field name. Ex: name="sid"
 	skip                          Skip json field
 	inc                           Add inc jsons function for numbers fields
 	bool                          Add set jsons function for bool fields
+	time                          Create convert jsons function for unixtime fields
+	raw                           Set Raw json function inside field
+	name=""                       Replace json field name. Ex: name="sid"
 */
 
 // field type
-type StatIndexType int
+type StatIndexTyped int
 
 // int index
 const (
-	IndexStatID = StatIndexType(iota)
-	IndexStatUID
-	IndexStatType
-	IndexStatName
-	IndexStatSource
-	IndexStatIP
-	IndexStatImage
-	IndexStatStack
-	IndexStatUints
-	IndexStatUints8
-	IndexStatUints16
-	IndexStatUints32
-	IndexStatUints64
-	IndexStatInts8
-	IndexStatInts16
-	IndexStatInts32
-	IndexStatInts64
+	StatIndexID = StatIndexTyped(iota)
+	StatIndexUID
+	StatIndexType
+	StatIndexName
+	StatIndexSource
+	StatIndexIP
+	StatIndexImage
+	StatIndexStack
+	StatIndexUints
+	StatIndexUints8
+	StatIndexUints16
+	StatIndexUints32
+	StatIndexUints64
+	StatIndexInts8
+	StatIndexInts16
+	StatIndexInts32
+	StatIndexInts64
 )
 
 // string index
 const (
-	FieldStatID      = "id"      // int sql{inc}  #readonly
-	FieldStatUID     = "uid"     // int ch{primary}
-	FieldStatType    = "type"    // int ch{low}
-	FieldStatName    = "name"    // string
-	FieldStatSource  = "source"  // string
-	FieldStatIP      = "ip"      // string
-	FieldStatImage   = "image"   // bool
-	FieldStatStack   = "stack"   // []string
-	FieldStatUints   = "uints"   // []uint
-	FieldStatUints8  = "uints8"  // []uint8
-	FieldStatUints16 = "uints16" // []uint16
-	FieldStatUints32 = "uints32" // []uint32
-	FieldStatUints64 = "uints64" // []uint64
-	FieldStatInts8   = "ints8"   // []int8
-	FieldStatInts16  = "ints16"  // []int16
-	FieldStatInts32  = "ints32"  // []int32
-	FieldStatInts64  = "ints64"  // []int64
+	StatFieldID      = "id"      // int sql{inc}  #readonly
+	StatFieldUID     = "uid"     // int ch{primary}
+	StatFieldType    = "type"    // int ch{low}
+	StatFieldName    = "name"    // string
+	StatFieldSource  = "source"  // string
+	StatFieldIP      = "ip"      // string
+	StatFieldImage   = "image"   // bool
+	StatFieldStack   = "stack"   // []string
+	StatFieldUints   = "uints"   // []uint
+	StatFieldUints8  = "uints8"  // []uint8
+	StatFieldUints16 = "uints16" // []uint16
+	StatFieldUints32 = "uints32" // []uint32
+	StatFieldUints64 = "uints64" // []uint64
+	StatFieldInts8   = "ints8"   // []int8
+	StatFieldInts16  = "ints16"  // []int16
+	StatFieldInts32  = "ints32"  // []int32
+	StatFieldInts64  = "ints64"  // []int64
 )
 
 // index func
-func StatIndexes() []StatIndexType {
-	return []StatIndexType{IndexStatID, IndexStatUID, IndexStatType, IndexStatName, IndexStatSource, IndexStatIP, IndexStatImage, IndexStatStack, IndexStatUints, IndexStatUints8, IndexStatUints16, IndexStatUints32, IndexStatUints64, IndexStatInts8, IndexStatInts16, IndexStatInts32, IndexStatInts64}
+func StatIndexes() []StatIndexTyped {
+	return []StatIndexTyped{StatIndexID, StatIndexUID, StatIndexType, StatIndexName, StatIndexSource, StatIndexIP, StatIndexImage, StatIndexStack, StatIndexUints, StatIndexUints8, StatIndexUints16, StatIndexUints32, StatIndexUints64, StatIndexInts8, StatIndexInts16, StatIndexInts32, StatIndexInts64}
 
 }
 
@@ -186,52 +187,51 @@ type Stat struct {
 }
 
 // Parse []any to ID struct
-func ParseStatToStruct(r []any) (a *Stat) {
-	a = new(Stat)
+func ParseStatToStruct(r []any) (a Stat) {
 
 	for pos, x := range r {
-		switch StatIndexType(pos) {
-		case IndexStatID:
+		switch StatIndexTyped(pos) {
+		case StatIndexID:
 			cast.Convert(&a.ID, x) //int
-		case IndexStatUID:
+		case StatIndexUID:
 			cast.Convert(&a.UID, x) //int
-		case IndexStatType:
+		case StatIndexType:
 			cast.Convert(&a.Type, x) //int
-		case IndexStatName:
+		case StatIndexName:
 			cast.Convert(&a.Name, x) //string
-		case IndexStatSource:
+		case StatIndexSource:
 			cast.Convert(&a.Source, x) //string
-		case IndexStatIP:
+		case StatIndexIP:
 			cast.Convert(&a.IP, x) //string
-		case IndexStatImage:
+		case StatIndexImage:
 			cast.Convert(&a.Image, x) //bool
-		case IndexStatStack:
+		case StatIndexStack:
 			cast.Convert(&a.Stack, x) //[]string
-		case IndexStatUints:
+		case StatIndexUints:
 			b, _ := jsoniter.Marshal(x)
 			_ = jsoniter.Unmarshal(b, &a.Uints) //[]uint
-		case IndexStatUints8:
+		case StatIndexUints8:
 			b, _ := jsoniter.Marshal(x)
 			_ = jsoniter.Unmarshal(b, &a.Uints8) //[]uint8
-		case IndexStatUints16:
+		case StatIndexUints16:
 			b, _ := jsoniter.Marshal(x)
 			_ = jsoniter.Unmarshal(b, &a.Uints16) //[]uint16
-		case IndexStatUints32:
+		case StatIndexUints32:
 			b, _ := jsoniter.Marshal(x)
 			_ = jsoniter.Unmarshal(b, &a.Uints32) //[]uint32
-		case IndexStatUints64:
+		case StatIndexUints64:
 			b, _ := jsoniter.Marshal(x)
 			_ = jsoniter.Unmarshal(b, &a.Uints64) //[]uint64
-		case IndexStatInts8:
+		case StatIndexInts8:
 			b, _ := jsoniter.Marshal(x)
 			_ = jsoniter.Unmarshal(b, &a.Ints8) //[]int8
-		case IndexStatInts16:
+		case StatIndexInts16:
 			b, _ := jsoniter.Marshal(x)
 			_ = jsoniter.Unmarshal(b, &a.Ints16) //[]int16
-		case IndexStatInts32:
+		case StatIndexInts32:
 			b, _ := jsoniter.Marshal(x)
 			_ = jsoniter.Unmarshal(b, &a.Ints32) //[]int32
-		case IndexStatInts64:
+		case StatIndexInts64:
 			b, _ := jsoniter.Marshal(x)
 			_ = jsoniter.Unmarshal(b, &a.Ints64) //[]int64
 		}
@@ -393,33 +393,33 @@ func (a *Stat) String(k string) (v string) {
 // Struct to json
 func (a *Stat) ToJson() (r []byte) {
 	js := jsons.Create().
-		Add(FieldStatID, a.ID).
-		Add(FieldStatUID, a.UID).
-		Add(FieldStatType, a.Type).
-		Add(FieldStatName, a.Name).
-		Add(FieldStatSource, a.Source).
-		Add(FieldStatIP, a.IP).
-		Add(FieldStatImage, a.Image).
-		Add(FieldStatStack, a.Stack).
-		Add(FieldStatUints, a.Uints).
-		Add(FieldStatUints8, a.Uints8).
-		Add(FieldStatUints16, a.Uints16).
-		Add(FieldStatUints32, a.Uints32).
-		Add(FieldStatUints64, a.Uints64).
-		Add(FieldStatInts8, a.Ints8).
-		Add(FieldStatInts16, a.Ints16).
-		Add(FieldStatInts32, a.Ints32).
-		Add(FieldStatInts64, a.Ints64)
+		Add(StatFieldID, a.ID).
+		Add(StatFieldUID, a.UID).
+		Add(StatFieldType, a.Type).
+		Add(StatFieldName, a.Name).
+		Add(StatFieldSource, a.Source).
+		Add(StatFieldIP, a.IP).
+		Add(StatFieldImage, a.Image).
+		Add(StatFieldStack, a.Stack).
+		Add(StatFieldUints, a.Uints).
+		Add(StatFieldUints8, a.Uints8).
+		Add(StatFieldUints16, a.Uints16).
+		Add(StatFieldUints32, a.Uints32).
+		Add(StatFieldUints64, a.Uints64).
+		Add(StatFieldInts8, a.Ints8).
+		Add(StatFieldInts16, a.Ints16).
+		Add(StatFieldInts32, a.Ints32).
+		Add(StatFieldInts64, a.Ints64)
 	return js.Bytes()
 }
 
-func StatReadonlyList() []StatIndexType {
-	return []StatIndexType{IndexStatID}
+func StatReadonlyList() []StatIndexTyped {
+	return []StatIndexTyped{StatIndexID}
 }
 
-func (a StatIndexType) Readonly() bool {
+func (a StatIndexTyped) Readonly() bool {
 	switch a {
-	case IndexStatID:
+	case StatIndexID:
 		return true
 	default:
 		return false
@@ -427,41 +427,41 @@ func (a StatIndexType) Readonly() bool {
 }
 
 // key index string
-func (a StatIndexType) String() string {
+func (a StatIndexTyped) String() string {
 	switch a {
-	case IndexStatID:
+	case StatIndexID:
 		return "id"
-	case IndexStatUID:
+	case StatIndexUID:
 		return "uid"
-	case IndexStatType:
+	case StatIndexType:
 		return "type"
-	case IndexStatName:
+	case StatIndexName:
 		return "name"
-	case IndexStatSource:
+	case StatIndexSource:
 		return "source"
-	case IndexStatIP:
+	case StatIndexIP:
 		return "ip"
-	case IndexStatImage:
+	case StatIndexImage:
 		return "image"
-	case IndexStatStack:
+	case StatIndexStack:
 		return "stack"
-	case IndexStatUints:
+	case StatIndexUints:
 		return "uints"
-	case IndexStatUints8:
+	case StatIndexUints8:
 		return "uints8"
-	case IndexStatUints16:
+	case StatIndexUints16:
 		return "uints16"
-	case IndexStatUints32:
+	case StatIndexUints32:
 		return "uints32"
-	case IndexStatUints64:
+	case StatIndexUints64:
 		return "uints64"
-	case IndexStatInts8:
+	case StatIndexInts8:
 		return "ints8"
-	case IndexStatInts16:
+	case StatIndexInts16:
 		return "ints16"
-	case IndexStatInts32:
+	case StatIndexInts32:
 		return "ints32"
-	case IndexStatInts64:
+	case StatIndexInts64:
 		return "ints64"
 	default:
 		return ""
@@ -469,41 +469,41 @@ func (a StatIndexType) String() string {
 }
 
 // key index string
-func (a StatIndexType) SQLName() string {
+func (a StatIndexTyped) SQLName() string {
 	switch a {
-	case IndexStatID:
+	case StatIndexID:
 		return "id"
-	case IndexStatUID:
+	case StatIndexUID:
 		return "uid"
-	case IndexStatType:
+	case StatIndexType:
 		return "type"
-	case IndexStatName:
+	case StatIndexName:
 		return "name"
-	case IndexStatSource:
+	case StatIndexSource:
 		return "source"
-	case IndexStatIP:
+	case StatIndexIP:
 		return "ip"
-	case IndexStatImage:
+	case StatIndexImage:
 		return "image"
-	case IndexStatStack:
+	case StatIndexStack:
 		return "stack"
-	case IndexStatUints:
+	case StatIndexUints:
 		return "uints"
-	case IndexStatUints8:
+	case StatIndexUints8:
 		return "uints8"
-	case IndexStatUints16:
+	case StatIndexUints16:
 		return "uints16"
-	case IndexStatUints32:
+	case StatIndexUints32:
 		return "uints32"
-	case IndexStatUints64:
+	case StatIndexUints64:
 		return "uints64"
-	case IndexStatInts8:
+	case StatIndexInts8:
 		return "ints8"
-	case IndexStatInts16:
+	case StatIndexInts16:
 		return "ints16"
-	case IndexStatInts32:
+	case StatIndexInts32:
 		return "ints32"
-	case IndexStatInts64:
+	case StatIndexInts64:
 		return "ints64"
 	default:
 		return ""
@@ -511,41 +511,41 @@ func (a StatIndexType) SQLName() string {
 }
 
 // key index clickhouse string
-func (a StatIndexType) ClickhouseName() string {
+func (a StatIndexTyped) ClickhouseName() string {
 	switch a {
-	case IndexStatID:
+	case StatIndexID:
 		return "id"
-	case IndexStatUID:
+	case StatIndexUID:
 		return "uid"
-	case IndexStatType:
+	case StatIndexType:
 		return "type"
-	case IndexStatName:
+	case StatIndexName:
 		return "name"
-	case IndexStatSource:
+	case StatIndexSource:
 		return "source"
-	case IndexStatIP:
+	case StatIndexIP:
 		return "ip"
-	case IndexStatImage:
+	case StatIndexImage:
 		return "image"
-	case IndexStatStack:
+	case StatIndexStack:
 		return "stack"
-	case IndexStatUints:
+	case StatIndexUints:
 		return "uints"
-	case IndexStatUints8:
+	case StatIndexUints8:
 		return "uints8"
-	case IndexStatUints16:
+	case StatIndexUints16:
 		return "uints16"
-	case IndexStatUints32:
+	case StatIndexUints32:
 		return "uints32"
-	case IndexStatUints64:
+	case StatIndexUints64:
 		return "uints64"
-	case IndexStatInts8:
+	case StatIndexInts8:
 		return "ints8"
-	case IndexStatInts16:
+	case StatIndexInts16:
 		return "ints16"
-	case IndexStatInts32:
+	case StatIndexInts32:
 		return "ints32"
-	case IndexStatInts64:
+	case StatIndexInts64:
 		return "ints64"
 	default:
 		return ""
@@ -553,41 +553,41 @@ func (a StatIndexType) ClickhouseName() string {
 }
 
 // key index type
-func (a StatIndexType) Type() string {
+func (a StatIndexTyped) Type() string {
 	switch a {
-	case IndexStatID:
+	case StatIndexID:
 		return "int"
-	case IndexStatUID:
+	case StatIndexUID:
 		return "int"
-	case IndexStatType:
+	case StatIndexType:
 		return "int"
-	case IndexStatName:
+	case StatIndexName:
 		return "string"
-	case IndexStatSource:
+	case StatIndexSource:
 		return "string"
-	case IndexStatIP:
+	case StatIndexIP:
 		return "string"
-	case IndexStatImage:
+	case StatIndexImage:
 		return "bool"
-	case IndexStatStack:
+	case StatIndexStack:
 		return "[]string"
-	case IndexStatUints:
+	case StatIndexUints:
 		return "[]uint"
-	case IndexStatUints8:
+	case StatIndexUints8:
 		return "[]uint8"
-	case IndexStatUints16:
+	case StatIndexUints16:
 		return "[]uint16"
-	case IndexStatUints32:
+	case StatIndexUints32:
 		return "[]uint32"
-	case IndexStatUints64:
+	case StatIndexUints64:
 		return "[]uint64"
-	case IndexStatInts8:
+	case StatIndexInts8:
 		return "[]int8"
-	case IndexStatInts16:
+	case StatIndexInts16:
 		return "[]int16"
-	case IndexStatInts32:
+	case StatIndexInts32:
 		return "[]int32"
-	case IndexStatInts64:
+	case StatIndexInts64:
 		return "[]int64"
 	default:
 		return ""
@@ -595,41 +595,41 @@ func (a StatIndexType) Type() string {
 }
 
 // custom title
-func (a StatIndexType) Title() string {
+func (a StatIndexTyped) Title() string {
 	switch a {
-	case IndexStatID:
+	case StatIndexID:
 		return "ID"
-	case IndexStatUID:
+	case StatIndexUID:
 		return "UID"
-	case IndexStatType:
+	case StatIndexType:
 		return "Type"
-	case IndexStatName:
+	case StatIndexName:
 		return "Name"
-	case IndexStatSource:
+	case StatIndexSource:
 		return "Source"
-	case IndexStatIP:
+	case StatIndexIP:
 		return "IP"
-	case IndexStatImage:
+	case StatIndexImage:
 		return "Image"
-	case IndexStatStack:
+	case StatIndexStack:
 		return "Stack"
-	case IndexStatUints:
+	case StatIndexUints:
 		return "Uints"
-	case IndexStatUints8:
+	case StatIndexUints8:
 		return "Uints8"
-	case IndexStatUints16:
+	case StatIndexUints16:
 		return "Uints16"
-	case IndexStatUints32:
+	case StatIndexUints32:
 		return "Uints32"
-	case IndexStatUints64:
+	case StatIndexUints64:
 		return "Uints64"
-	case IndexStatInts8:
+	case StatIndexInts8:
 		return "Ints8"
-	case IndexStatInts16:
+	case StatIndexInts16:
 		return "Ints16"
-	case IndexStatInts32:
+	case StatIndexInts32:
 		return "Ints32"
-	case IndexStatInts64:
+	case StatIndexInts64:
 		return "Ints64"
 	default:
 		return ""
@@ -637,7 +637,7 @@ func (a StatIndexType) Title() string {
 }
 
 // custom desc
-func (a StatIndexType) Desc() string {
+func (a StatIndexTyped) Desc() string {
 	switch a {
 	default:
 		return ""
@@ -645,42 +645,42 @@ func (a StatIndexType) Desc() string {
 }
 
 // struct key to index
-func StatKeyIndex(key string) StatIndexType {
+func StatKeyIndex(key string) StatIndexTyped {
 	switch key {
 	case "id":
-		return IndexStatID
+		return StatIndexID
 	case "uid":
-		return IndexStatUID
+		return StatIndexUID
 	case "type":
-		return IndexStatType
+		return StatIndexType
 	case "name":
-		return IndexStatName
+		return StatIndexName
 	case "source":
-		return IndexStatSource
+		return StatIndexSource
 	case "ip":
-		return IndexStatIP
+		return StatIndexIP
 	case "image":
-		return IndexStatImage
+		return StatIndexImage
 	case "stack":
-		return IndexStatStack
+		return StatIndexStack
 	case "uints":
-		return IndexStatUints
+		return StatIndexUints
 	case "uints8":
-		return IndexStatUints8
+		return StatIndexUints8
 	case "uints16":
-		return IndexStatUints16
+		return StatIndexUints16
 	case "uints32":
-		return IndexStatUints32
+		return StatIndexUints32
 	case "uints64":
-		return IndexStatUints64
+		return StatIndexUints64
 	case "ints8":
-		return IndexStatInts8
+		return StatIndexInts8
 	case "ints16":
-		return IndexStatInts16
+		return StatIndexInts16
 	case "ints32":
-		return IndexStatInts32
+		return StatIndexInts32
 	case "ints64":
-		return IndexStatInts64
+		return StatIndexInts64
 	default:
 		return 0
 	}
@@ -720,7 +720,7 @@ func (a *Stat) Map() map[string]any {
 }
 
 // struct to map
-func (a *Stat) Iterate(f func(k StatIndexType, v any)) {
+func (a *Stat) Iterate(f func(k StatIndexTyped, v any)) {
 	for _, x := range StatIndexes() {
 		f(x, a.Get(x.String()))
 	}
@@ -754,153 +754,153 @@ func ParseStat(v []byte) (a Stat, err error) {
 // Parse []any to json
 func ParseTupleToStatJson(r []any) (a StatJson) {
 	for pos, x := range r {
-		switch StatIndexType(pos) {
-		case IndexStatID:
-			a.Set(FieldStatID, x)
-		case IndexStatUID:
-			a.Set(FieldStatUID, x)
-		case IndexStatType:
-			a.Set(FieldStatType, x)
-		case IndexStatName:
-			a.Set(FieldStatName, x)
-		case IndexStatSource:
-			a.Set(FieldStatSource, x)
-		case IndexStatIP:
-			a.Set(FieldStatIP, x)
-		case IndexStatImage:
-			a.Set(FieldStatImage, x)
-		case IndexStatStack:
-			a.Set(FieldStatStack, x)
-		case IndexStatUints:
-			a.Set(FieldStatUints, x)
-		case IndexStatUints8:
-			a.Set(FieldStatUints8, x)
-		case IndexStatUints16:
-			a.Set(FieldStatUints16, x)
-		case IndexStatUints32:
-			a.Set(FieldStatUints32, x)
-		case IndexStatUints64:
-			a.Set(FieldStatUints64, x)
-		case IndexStatInts8:
-			a.Set(FieldStatInts8, x)
-		case IndexStatInts16:
-			a.Set(FieldStatInts16, x)
-		case IndexStatInts32:
-			a.Set(FieldStatInts32, x)
-		case IndexStatInts64:
-			a.Set(FieldStatInts64, x)
+		switch StatIndexTyped(pos) {
+		case StatIndexID:
+			a.Set(StatFieldID, x)
+		case StatIndexUID:
+			a.Set(StatFieldUID, x)
+		case StatIndexType:
+			a.Set(StatFieldType, x)
+		case StatIndexName:
+			a.Set(StatFieldName, x)
+		case StatIndexSource:
+			a.Set(StatFieldSource, x)
+		case StatIndexIP:
+			a.Set(StatFieldIP, x)
+		case StatIndexImage:
+			a.Set(StatFieldImage, x)
+		case StatIndexStack:
+			a.Set(StatFieldStack, x)
+		case StatIndexUints:
+			a.Set(StatFieldUints, x)
+		case StatIndexUints8:
+			a.Set(StatFieldUints8, x)
+		case StatIndexUints16:
+			a.Set(StatFieldUints16, x)
+		case StatIndexUints32:
+			a.Set(StatFieldUints32, x)
+		case StatIndexUints64:
+			a.Set(StatFieldUints64, x)
+		case StatIndexInts8:
+			a.Set(StatFieldInts8, x)
+		case StatIndexInts16:
+			a.Set(StatFieldInts16, x)
+		case StatIndexInts32:
+			a.Set(StatFieldInts32, x)
+		case StatIndexInts64:
+			a.Set(StatFieldInts64, x)
 		}
 	}
 	return
 }
 
-//NewStatJson create struct
+// NewStatJson create struct
 func NewStatJson() StatJson {
 	return []byte("{}")
 }
 
-//StatJson is a struct
+// StatJson is a struct
 type StatJson []byte
 
-//Set value
+// Set value
 func (a *StatJson) Set(k string, v any) *StatJson {
 	(*a) = jsons.Set((*a), k, v)
 	return a
 }
 
-//Get value
+// Get value
 func (a *StatJson) Get(k string) jsons.Result {
 	return jsons.Get((*a), k)
 }
 
-//Get value
+// Get value
 func (a *StatJson) DeleteFields(fields ...string) {
 	(*a) = jsons.Delete((*a), fields...)
 }
 
-//ID set or get value
+// ID set or get value
 func (a *StatJson) ID(v ...int) (res int) {
 	if v == nil {
-		return jsons.Int((*a), FieldStatID)
+		return jsons.Int((*a), StatFieldID)
 	}
-	a.Set(FieldStatID, v[0])
+	a.Set(StatFieldID, v[0])
 	return
 }
 
-//UID set or get value
+// UID set or get value
 func (a *StatJson) UID(v ...int) (res int) {
 	if v == nil {
-		return jsons.Int((*a), FieldStatUID)
+		return jsons.Int((*a), StatFieldUID)
 	}
-	a.Set(FieldStatUID, v[0])
+	a.Set(StatFieldUID, v[0])
 	return
 }
 
-//Type set or get value
+// Type set or get value
 func (a *StatJson) Type(v ...int) (res int) {
 	if v == nil {
-		return jsons.Int((*a), FieldStatType)
+		return jsons.Int((*a), StatFieldType)
 	}
-	a.Set(FieldStatType, v[0])
+	a.Set(StatFieldType, v[0])
 	return
 }
 
-//Name set or get value
+// Name set or get value
 func (a *StatJson) Name(v ...string) (res string) {
 	if v == nil {
-		return jsons.String((*a), FieldStatName)
+		return jsons.String((*a), StatFieldName)
 	}
-	a.Set(FieldStatName, v[0])
+	a.Set(StatFieldName, v[0])
 	return
 }
 
-//Source set or get value
+// Source set or get value
 func (a *StatJson) Source(v ...string) (res string) {
 	if v == nil {
-		return jsons.String((*a), FieldStatSource)
+		return jsons.String((*a), StatFieldSource)
 	}
-	a.Set(FieldStatSource, v[0])
+	a.Set(StatFieldSource, v[0])
 	return
 }
 
-//IP set or get value
+// IP set or get value
 func (a *StatJson) IP(v ...string) (res string) {
 	if v == nil {
-		return jsons.String((*a), FieldStatIP)
+		return jsons.String((*a), StatFieldIP)
 	}
-	a.Set(FieldStatIP, v[0])
+	a.Set(StatFieldIP, v[0])
 	return
 }
 
-//Image set or get value
+// Image set or get value
 func (a *StatJson) Image(v ...bool) (res bool) {
 	if v == nil {
-		return jsons.Bool((*a), FieldStatImage)
+		return jsons.Bool((*a), StatFieldImage)
 	}
-	a.Set(FieldStatImage, v[0])
+	a.Set(StatFieldImage, v[0])
 	return
 }
 
-//Stack set or get value
+// Stack set or get value
 func (a *StatJson) Stack(v ...string) (res []string) {
 	if v == nil {
-		return jsons.ArrayString((*a), FieldStatStack)
+		return jsons.ArrayString((*a), StatFieldStack)
 	}
-	a.Set(FieldStatStack, v)
+	a.Set(StatFieldStack, v)
 	return
 }
 
-//StackAdd add values
+// StackAdd add values
 func (a *StatJson) StackAdd(v ...string) {
-	a.Set(FieldStatStack, append(a.Stack(), v...))
+	a.Set(StatFieldStack, append(a.Stack(), v...))
 }
 
-//StackPrepend add values
+// StackPrepend add values
 func (a *StatJson) StackPrepend(v ...string) {
-	a.Set(FieldStatStack, append(v, a.Stack()...))
+	a.Set(StatFieldStack, append(v, a.Stack()...))
 }
 
-//StackAddUnique add unique values only
+// StackAddUnique add unique values only
 func (a *StatJson) StackAddUnique(v ...string) {
 	var list []string
 	un := map[string]bool{}
@@ -922,7 +922,7 @@ func (a *StatJson) StackAddUnique(v ...string) {
 	a.Stack(list...)
 }
 
-//StackDelete add unique values only
+// StackDelete add unique values only
 func (a *StatJson) StackDelete(v string) {
 	var list []string
 	for _, x := range a.Stack() {
@@ -934,26 +934,26 @@ func (a *StatJson) StackDelete(v string) {
 	a.Stack(list...)
 }
 
-//Uints set or get value
+// Uints set or get value
 func (a *StatJson) Uints(v ...uint) (res []uint) {
 	if v == nil {
-		return jsons.ArrayUint((*a), FieldStatUints)
+		return jsons.ArrayUint((*a), StatFieldUints)
 	}
-	a.Set(FieldStatUints, v)
+	a.Set(StatFieldUints, v)
 	return
 }
 
-//UintsAdd add values
+// UintsAdd add values
 func (a *StatJson) UintsAdd(v ...uint) {
-	a.Set(FieldStatUints, append(a.Uints(), v...))
+	a.Set(StatFieldUints, append(a.Uints(), v...))
 }
 
-//UintsPrepend add values
+// UintsPrepend add values
 func (a *StatJson) UintsPrepend(v ...uint) {
-	a.Set(FieldStatUints, append(v, a.Uints()...))
+	a.Set(StatFieldUints, append(v, a.Uints()...))
 }
 
-//UintsAddUnique add unique values only
+// UintsAddUnique add unique values only
 func (a *StatJson) UintsAddUnique(v ...uint) {
 	var list []uint
 	un := map[uint]bool{}
@@ -975,7 +975,7 @@ func (a *StatJson) UintsAddUnique(v ...uint) {
 	a.Uints(list...)
 }
 
-//UintsDelete add unique values only
+// UintsDelete add unique values only
 func (a *StatJson) UintsDelete(v uint) {
 	var list []uint
 	for _, x := range a.Uints() {
@@ -987,26 +987,26 @@ func (a *StatJson) UintsDelete(v uint) {
 	a.Uints(list...)
 }
 
-//Uints8 set or get value
+// Uints8 set or get value
 func (a *StatJson) Uints8(v ...uint8) (res []uint8) {
 	if v == nil {
-		return jsons.ArrayUint8((*a), FieldStatUints8)
+		return jsons.ArrayUint8((*a), StatFieldUints8)
 	}
-	a.Set(FieldStatUints8, v)
+	a.Set(StatFieldUints8, v)
 	return
 }
 
-//Uints8Add add values
+// Uints8Add add values
 func (a *StatJson) Uints8Add(v ...uint8) {
-	a.Set(FieldStatUints8, append(a.Uints8(), v...))
+	a.Set(StatFieldUints8, append(a.Uints8(), v...))
 }
 
-//Uints8Prepend add values
+// Uints8Prepend add values
 func (a *StatJson) Uints8Prepend(v ...uint8) {
-	a.Set(FieldStatUints8, append(v, a.Uints8()...))
+	a.Set(StatFieldUints8, append(v, a.Uints8()...))
 }
 
-//Uints8AddUnique add unique values only
+// Uints8AddUnique add unique values only
 func (a *StatJson) Uints8AddUnique(v ...uint8) {
 	var list []uint8
 	un := map[uint8]bool{}
@@ -1028,7 +1028,7 @@ func (a *StatJson) Uints8AddUnique(v ...uint8) {
 	a.Uints8(list...)
 }
 
-//Uints8Delete add unique values only
+// Uints8Delete add unique values only
 func (a *StatJson) Uints8Delete(v uint8) {
 	var list []uint8
 	for _, x := range a.Uints8() {
@@ -1040,26 +1040,26 @@ func (a *StatJson) Uints8Delete(v uint8) {
 	a.Uints8(list...)
 }
 
-//Uints16 set or get value
+// Uints16 set or get value
 func (a *StatJson) Uints16(v ...uint16) (res []uint16) {
 	if v == nil {
-		return jsons.ArrayUint16((*a), FieldStatUints16)
+		return jsons.ArrayUint16((*a), StatFieldUints16)
 	}
-	a.Set(FieldStatUints16, v)
+	a.Set(StatFieldUints16, v)
 	return
 }
 
-//Uints16Add add values
+// Uints16Add add values
 func (a *StatJson) Uints16Add(v ...uint16) {
-	a.Set(FieldStatUints16, append(a.Uints16(), v...))
+	a.Set(StatFieldUints16, append(a.Uints16(), v...))
 }
 
-//Uints16Prepend add values
+// Uints16Prepend add values
 func (a *StatJson) Uints16Prepend(v ...uint16) {
-	a.Set(FieldStatUints16, append(v, a.Uints16()...))
+	a.Set(StatFieldUints16, append(v, a.Uints16()...))
 }
 
-//Uints16AddUnique add unique values only
+// Uints16AddUnique add unique values only
 func (a *StatJson) Uints16AddUnique(v ...uint16) {
 	var list []uint16
 	un := map[uint16]bool{}
@@ -1081,7 +1081,7 @@ func (a *StatJson) Uints16AddUnique(v ...uint16) {
 	a.Uints16(list...)
 }
 
-//Uints16Delete add unique values only
+// Uints16Delete add unique values only
 func (a *StatJson) Uints16Delete(v uint16) {
 	var list []uint16
 	for _, x := range a.Uints16() {
@@ -1093,26 +1093,26 @@ func (a *StatJson) Uints16Delete(v uint16) {
 	a.Uints16(list...)
 }
 
-//Uints32 set or get value
+// Uints32 set or get value
 func (a *StatJson) Uints32(v ...uint32) (res []uint32) {
 	if v == nil {
-		return jsons.ArrayUint32((*a), FieldStatUints32)
+		return jsons.ArrayUint32((*a), StatFieldUints32)
 	}
-	a.Set(FieldStatUints32, v)
+	a.Set(StatFieldUints32, v)
 	return
 }
 
-//Uints32Add add values
+// Uints32Add add values
 func (a *StatJson) Uints32Add(v ...uint32) {
-	a.Set(FieldStatUints32, append(a.Uints32(), v...))
+	a.Set(StatFieldUints32, append(a.Uints32(), v...))
 }
 
-//Uints32Prepend add values
+// Uints32Prepend add values
 func (a *StatJson) Uints32Prepend(v ...uint32) {
-	a.Set(FieldStatUints32, append(v, a.Uints32()...))
+	a.Set(StatFieldUints32, append(v, a.Uints32()...))
 }
 
-//Uints32AddUnique add unique values only
+// Uints32AddUnique add unique values only
 func (a *StatJson) Uints32AddUnique(v ...uint32) {
 	var list []uint32
 	un := map[uint32]bool{}
@@ -1134,7 +1134,7 @@ func (a *StatJson) Uints32AddUnique(v ...uint32) {
 	a.Uints32(list...)
 }
 
-//Uints32Delete add unique values only
+// Uints32Delete add unique values only
 func (a *StatJson) Uints32Delete(v uint32) {
 	var list []uint32
 	for _, x := range a.Uints32() {
@@ -1146,26 +1146,26 @@ func (a *StatJson) Uints32Delete(v uint32) {
 	a.Uints32(list...)
 }
 
-//Uints64 set or get value
+// Uints64 set or get value
 func (a *StatJson) Uints64(v ...uint64) (res []uint64) {
 	if v == nil {
-		return jsons.ArrayUint64((*a), FieldStatUints64)
+		return jsons.ArrayUint64((*a), StatFieldUints64)
 	}
-	a.Set(FieldStatUints64, v)
+	a.Set(StatFieldUints64, v)
 	return
 }
 
-//Uints64Add add values
+// Uints64Add add values
 func (a *StatJson) Uints64Add(v ...uint64) {
-	a.Set(FieldStatUints64, append(a.Uints64(), v...))
+	a.Set(StatFieldUints64, append(a.Uints64(), v...))
 }
 
-//Uints64Prepend add values
+// Uints64Prepend add values
 func (a *StatJson) Uints64Prepend(v ...uint64) {
-	a.Set(FieldStatUints64, append(v, a.Uints64()...))
+	a.Set(StatFieldUints64, append(v, a.Uints64()...))
 }
 
-//Uints64AddUnique add unique values only
+// Uints64AddUnique add unique values only
 func (a *StatJson) Uints64AddUnique(v ...uint64) {
 	var list []uint64
 	un := map[uint64]bool{}
@@ -1187,7 +1187,7 @@ func (a *StatJson) Uints64AddUnique(v ...uint64) {
 	a.Uints64(list...)
 }
 
-//Uints64Delete add unique values only
+// Uints64Delete add unique values only
 func (a *StatJson) Uints64Delete(v uint64) {
 	var list []uint64
 	for _, x := range a.Uints64() {
@@ -1199,26 +1199,26 @@ func (a *StatJson) Uints64Delete(v uint64) {
 	a.Uints64(list...)
 }
 
-//Ints8 set or get value
+// Ints8 set or get value
 func (a *StatJson) Ints8(v ...int8) (res []int8) {
 	if v == nil {
-		return jsons.ArrayInt8((*a), FieldStatInts8)
+		return jsons.ArrayInt8((*a), StatFieldInts8)
 	}
-	a.Set(FieldStatInts8, v)
+	a.Set(StatFieldInts8, v)
 	return
 }
 
-//Ints8Add add values
+// Ints8Add add values
 func (a *StatJson) Ints8Add(v ...int8) {
-	a.Set(FieldStatInts8, append(a.Ints8(), v...))
+	a.Set(StatFieldInts8, append(a.Ints8(), v...))
 }
 
-//Ints8Prepend add values
+// Ints8Prepend add values
 func (a *StatJson) Ints8Prepend(v ...int8) {
-	a.Set(FieldStatInts8, append(v, a.Ints8()...))
+	a.Set(StatFieldInts8, append(v, a.Ints8()...))
 }
 
-//Ints8AddUnique add unique values only
+// Ints8AddUnique add unique values only
 func (a *StatJson) Ints8AddUnique(v ...int8) {
 	var list []int8
 	un := map[int8]bool{}
@@ -1240,7 +1240,7 @@ func (a *StatJson) Ints8AddUnique(v ...int8) {
 	a.Ints8(list...)
 }
 
-//Ints8Delete add unique values only
+// Ints8Delete add unique values only
 func (a *StatJson) Ints8Delete(v int8) {
 	var list []int8
 	for _, x := range a.Ints8() {
@@ -1252,26 +1252,26 @@ func (a *StatJson) Ints8Delete(v int8) {
 	a.Ints8(list...)
 }
 
-//Ints16 set or get value
+// Ints16 set or get value
 func (a *StatJson) Ints16(v ...int16) (res []int16) {
 	if v == nil {
-		return jsons.ArrayInt16((*a), FieldStatInts16)
+		return jsons.ArrayInt16((*a), StatFieldInts16)
 	}
-	a.Set(FieldStatInts16, v)
+	a.Set(StatFieldInts16, v)
 	return
 }
 
-//Ints16Add add values
+// Ints16Add add values
 func (a *StatJson) Ints16Add(v ...int16) {
-	a.Set(FieldStatInts16, append(a.Ints16(), v...))
+	a.Set(StatFieldInts16, append(a.Ints16(), v...))
 }
 
-//Ints16Prepend add values
+// Ints16Prepend add values
 func (a *StatJson) Ints16Prepend(v ...int16) {
-	a.Set(FieldStatInts16, append(v, a.Ints16()...))
+	a.Set(StatFieldInts16, append(v, a.Ints16()...))
 }
 
-//Ints16AddUnique add unique values only
+// Ints16AddUnique add unique values only
 func (a *StatJson) Ints16AddUnique(v ...int16) {
 	var list []int16
 	un := map[int16]bool{}
@@ -1293,7 +1293,7 @@ func (a *StatJson) Ints16AddUnique(v ...int16) {
 	a.Ints16(list...)
 }
 
-//Ints16Delete add unique values only
+// Ints16Delete add unique values only
 func (a *StatJson) Ints16Delete(v int16) {
 	var list []int16
 	for _, x := range a.Ints16() {
@@ -1305,26 +1305,26 @@ func (a *StatJson) Ints16Delete(v int16) {
 	a.Ints16(list...)
 }
 
-//Ints32 set or get value
+// Ints32 set or get value
 func (a *StatJson) Ints32(v ...int32) (res []int32) {
 	if v == nil {
-		return jsons.ArrayInt32((*a), FieldStatInts32)
+		return jsons.ArrayInt32((*a), StatFieldInts32)
 	}
-	a.Set(FieldStatInts32, v)
+	a.Set(StatFieldInts32, v)
 	return
 }
 
-//Ints32Add add values
+// Ints32Add add values
 func (a *StatJson) Ints32Add(v ...int32) {
-	a.Set(FieldStatInts32, append(a.Ints32(), v...))
+	a.Set(StatFieldInts32, append(a.Ints32(), v...))
 }
 
-//Ints32Prepend add values
+// Ints32Prepend add values
 func (a *StatJson) Ints32Prepend(v ...int32) {
-	a.Set(FieldStatInts32, append(v, a.Ints32()...))
+	a.Set(StatFieldInts32, append(v, a.Ints32()...))
 }
 
-//Ints32AddUnique add unique values only
+// Ints32AddUnique add unique values only
 func (a *StatJson) Ints32AddUnique(v ...int32) {
 	var list []int32
 	un := map[int32]bool{}
@@ -1346,7 +1346,7 @@ func (a *StatJson) Ints32AddUnique(v ...int32) {
 	a.Ints32(list...)
 }
 
-//Ints32Delete add unique values only
+// Ints32Delete add unique values only
 func (a *StatJson) Ints32Delete(v int32) {
 	var list []int32
 	for _, x := range a.Ints32() {
@@ -1358,26 +1358,26 @@ func (a *StatJson) Ints32Delete(v int32) {
 	a.Ints32(list...)
 }
 
-//Ints64 set or get value
+// Ints64 set or get value
 func (a *StatJson) Ints64(v ...int64) (res []int64) {
 	if v == nil {
-		return jsons.ArrayInt64((*a), FieldStatInts64)
+		return jsons.ArrayInt64((*a), StatFieldInts64)
 	}
-	a.Set(FieldStatInts64, v)
+	a.Set(StatFieldInts64, v)
 	return
 }
 
-//Ints64Add add values
+// Ints64Add add values
 func (a *StatJson) Ints64Add(v ...int64) {
-	a.Set(FieldStatInts64, append(a.Ints64(), v...))
+	a.Set(StatFieldInts64, append(a.Ints64(), v...))
 }
 
-//Ints64Prepend add values
+// Ints64Prepend add values
 func (a *StatJson) Ints64Prepend(v ...int64) {
-	a.Set(FieldStatInts64, append(v, a.Ints64()...))
+	a.Set(StatFieldInts64, append(v, a.Ints64()...))
 }
 
-//Ints64AddUnique add unique values only
+// Ints64AddUnique add unique values only
 func (a *StatJson) Ints64AddUnique(v ...int64) {
 	var list []int64
 	un := map[int64]bool{}
@@ -1399,7 +1399,7 @@ func (a *StatJson) Ints64AddUnique(v ...int64) {
 	a.Ints64(list...)
 }
 
-//Ints64Delete add unique values only
+// Ints64Delete add unique values only
 func (a *StatJson) Ints64Delete(v int64) {
 	var list []int64
 	for _, x := range a.Ints64() {
@@ -1419,6 +1419,10 @@ func NewStatSQL(pool *pgxpool.Pool) (a *StatSQL) {
 	a.pool = pool
 	a.CreateTable()
 	return
+}
+
+func ConnStatSQL(pool *pgxpool.Pool) (a *StatSQL) {
+	return &StatSQL{pool}
 }
 
 //delete item
@@ -1522,7 +1526,7 @@ func (a *StatSQL) SetIDSerialCounter(value int) (err error) {
 }
 
 // parse sql query
-func (a *StatSQL) Get(id any, fields ...StatIndexType) (res *Stat, err error) {
+func (a *StatSQL) Get(id any, fields ...StatIndexTyped) (res Stat, err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -1543,7 +1547,6 @@ func (a *StatSQL) Get(id any, fields ...StatIndexType) (res *Stat, err error) {
 
 	q := fmt.Sprintf("select %s ", fieldlist)
 	q = q + "from stat where id = $1 limit 1"
-	res = new(Stat)
 	rows, err := conn.Query(c, q, id)
 	if err != nil {
 		return
@@ -1569,7 +1572,7 @@ func (a *StatSQL) Get(id any, fields ...StatIndexType) (res *Stat, err error) {
 }
 
 // parse sql query
-func (a *StatSQL) GetWhere(where string, fields ...StatIndexType) (res *Stat, err error) {
+func (a *StatSQL) GetWhere(where string, fields ...StatIndexTyped) (res Stat, err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -1592,7 +1595,6 @@ func (a *StatSQL) GetWhere(where string, fields ...StatIndexType) (res *Stat, er
 	q = q + " from stat"
 	q = q + fmt.Sprintf(" where %s ", where)
 	q = q + " limit 1"
-	res = new(Stat)
 	rows, err := conn.Query(c, q)
 	if err != nil {
 		return
@@ -1618,7 +1620,7 @@ func (a *StatSQL) GetWhere(where string, fields ...StatIndexType) (res *Stat, er
 }
 
 // parse sql query
-func (a *StatSQL) Row(eq map[string]any, fields ...StatIndexType) (res *Stat, err error) {
+func (a *StatSQL) Row(eq map[string]any, fields ...StatIndexTyped) (res Stat, err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -1657,7 +1659,6 @@ func (a *StatSQL) Row(eq map[string]any, fields ...StatIndexType) (res *Stat, er
 	keys := strings.Join(andlist, " and ")
 
 	q := fmt.Sprintf("select %s from %s where %s limit 1", fieldlist, a.TableName(), keys)
-	res = new(Stat)
 	rows, err := conn.Query(c, q, values...)
 	if err != nil {
 		return
@@ -1683,7 +1684,7 @@ func (a *StatSQL) Row(eq map[string]any, fields ...StatIndexType) (res *Stat, er
 }
 
 // get simple list from db
-func (a *StatSQL) All(fields ...StatIndexType) (res []*Stat, err error) {
+func (a *StatSQL) All(fields ...StatIndexTyped) (res []*Stat, err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -1730,7 +1731,7 @@ func (a *StatSQL) All(fields ...StatIndexType) (res []*Stat, err error) {
 }
 
 // get simple list from db
-func (a *StatSQL) List(limit, offset int, fields ...StatIndexType) (res []*Stat, err error) {
+func (a *StatSQL) List(limit, offset int, fields ...StatIndexTyped) (res []*Stat, err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -1887,7 +1888,7 @@ func (a *StatSQL) UpdatesWhere(keys map[string]any, where string, args ...any) (
 }
 
 // add array value to jsonb array
-func (a *StatSQL) AddStack(id any, v any) (err error) {
+func (a *StatSQL) AddStack(id any, v ...string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -1897,14 +1898,15 @@ func (a *StatSQL) AddStack(id any, v any) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set stack = stack || '%s'::jsonb where id = $1", res)
-	_, err = conn.Exec(c, q, id)
+	vvv, _ := jsoniter.Marshal(v)
+	vv := string(vvv)
+	q := "update stat set stack = stack || $1::jsonb where id = $2"
+	_, err = conn.Exec(c, q, vv, id)
 	return
 }
 
 // delete array value from jsonb array
-func (a *StatSQL) DeleteStack(id any, v any, where ...string) (err error) {
+func (a *StatSQL) DeleteStack(id any, v string, where ...string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -1913,16 +1915,19 @@ func (a *StatSQL) DeleteStack(id any, v any, where ...string) (err error) {
 	}
 	defer conn.Release()
 
-	q := "update stat set stack = stack - $1 where id = $2"
+	// json escape
+	vvv, _ := jsoniter.Marshal([]string{v})
+	vv := string(vvv)
+	q := "update stat set stack = stack - $1::jsonb where id = $2"
 	if len(where) > 0 {
 		q += " and " + where[0]
 	}
-	_, err = conn.Exec(c, q, v, id)
+	_, err = conn.Exec(c, q, vv, id)
 	return
 }
 
 // add array value to jsonb array
-func (a *StatSQL) AddStackWhere(v any, where string) (err error) {
+func (a *StatSQL) AddStackWhere(v string, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -1932,29 +1937,15 @@ func (a *StatSQL) AddStackWhere(v any, where string) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set stack = stack || '%s'::jsonb where %s", res, where)
-	_, err = conn.Exec(c, q)
+	vvv, _ := jsoniter.Marshal([]string{v})
+	vv := string(vvv)
+	q := "update stat set stack = stack || $1::jsonb where " + where
+	_, err = conn.Exec(c, vv, q)
 	return
 }
 
 // delete array value from jsonb array
-func (a *StatSQL) DeleteStackWhere(v any, where string) (err error) {
-
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-	if err != nil {
-		return
-	}
-	defer conn.Release()
-
-	q := fmt.Sprintf("update stat set stack = stack - $1 where %s", where)
-	_, err = conn.Exec(c, q, v)
-	return
-}
-
-// add array value to jsonb array
-func (a *StatSQL) AddUints(id any, v any) (err error) {
+func (a *StatSQL) DeleteStackWhere(v string, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -1964,14 +1955,15 @@ func (a *StatSQL) AddUints(id any, v any) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set uints = uints || '%s'::jsonb where id = $1", res)
-	_, err = conn.Exec(c, q, id)
+	vvv, _ := jsoniter.Marshal([]string{v})
+	vv := string(vvv)
+	q := "update stat set stack = stack - $1::jsonb where " + where
+	_, err = conn.Exec(c, q, vv)
 	return
 }
 
-// delete array value from jsonb array
-func (a *StatSQL) DeleteUints(id any, v any, where ...string) (err error) {
+// add array value to jsonb array
+func (a *StatSQL) AddUints(id any, v ...uint) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -1980,16 +1972,37 @@ func (a *StatSQL) DeleteUints(id any, v any, where ...string) (err error) {
 	}
 	defer conn.Release()
 
-	q := "update stat set uints = uints - $1 where id = $2"
+	// json escape
+	vvv, _ := jsoniter.Marshal(v)
+	vv := string(vvv)
+	q := "update stat set uints = uints || $1::jsonb where id = $2"
+	_, err = conn.Exec(c, q, vv, id)
+	return
+}
+
+// delete array value from jsonb array
+func (a *StatSQL) DeleteUints(id any, v uint, where ...string) (err error) {
+
+	c := context.Background()
+	conn, err := a.pool.Acquire(c)
+	if err != nil {
+		return
+	}
+	defer conn.Release()
+
+	// json escape
+	vvv, _ := jsoniter.Marshal([]uint{v})
+	vv := string(vvv)
+	q := "update stat set uints = uints - $1::jsonb where id = $2"
 	if len(where) > 0 {
 		q += " and " + where[0]
 	}
-	_, err = conn.Exec(c, q, v, id)
+	_, err = conn.Exec(c, q, vv, id)
 	return
 }
 
 // add array value to jsonb array
-func (a *StatSQL) AddUintsWhere(v any, where string) (err error) {
+func (a *StatSQL) AddUintsWhere(v uint, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -1999,29 +2012,15 @@ func (a *StatSQL) AddUintsWhere(v any, where string) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set uints = uints || '%s'::jsonb where %s", res, where)
-	_, err = conn.Exec(c, q)
+	vvv, _ := jsoniter.Marshal([]uint{v})
+	vv := string(vvv)
+	q := "update stat set uints = uints || $1::jsonb where " + where
+	_, err = conn.Exec(c, vv, q)
 	return
 }
 
 // delete array value from jsonb array
-func (a *StatSQL) DeleteUintsWhere(v any, where string) (err error) {
-
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-	if err != nil {
-		return
-	}
-	defer conn.Release()
-
-	q := fmt.Sprintf("update stat set uints = uints - $1 where %s", where)
-	_, err = conn.Exec(c, q, v)
-	return
-}
-
-// add array value to jsonb array
-func (a *StatSQL) AddUints16(id any, v any) (err error) {
+func (a *StatSQL) DeleteUintsWhere(v uint, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2031,14 +2030,15 @@ func (a *StatSQL) AddUints16(id any, v any) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set uints16 = uints16 || '%s'::jsonb where id = $1", res)
-	_, err = conn.Exec(c, q, id)
+	vvv, _ := jsoniter.Marshal([]uint{v})
+	vv := string(vvv)
+	q := "update stat set uints = uints - $1::jsonb where " + where
+	_, err = conn.Exec(c, q, vv)
 	return
 }
 
-// delete array value from jsonb array
-func (a *StatSQL) DeleteUints16(id any, v any, where ...string) (err error) {
+// add array value to jsonb array
+func (a *StatSQL) AddUints16(id any, v ...uint16) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2047,16 +2047,37 @@ func (a *StatSQL) DeleteUints16(id any, v any, where ...string) (err error) {
 	}
 	defer conn.Release()
 
-	q := "update stat set uints16 = uints16 - $1 where id = $2"
+	// json escape
+	vvv, _ := jsoniter.Marshal(v)
+	vv := string(vvv)
+	q := "update stat set uints16 = uints16 || $1::jsonb where id = $2"
+	_, err = conn.Exec(c, q, vv, id)
+	return
+}
+
+// delete array value from jsonb array
+func (a *StatSQL) DeleteUints16(id any, v uint16, where ...string) (err error) {
+
+	c := context.Background()
+	conn, err := a.pool.Acquire(c)
+	if err != nil {
+		return
+	}
+	defer conn.Release()
+
+	// json escape
+	vvv, _ := jsoniter.Marshal([]uint16{v})
+	vv := string(vvv)
+	q := "update stat set uints16 = uints16 - $1::jsonb where id = $2"
 	if len(where) > 0 {
 		q += " and " + where[0]
 	}
-	_, err = conn.Exec(c, q, v, id)
+	_, err = conn.Exec(c, q, vv, id)
 	return
 }
 
 // add array value to jsonb array
-func (a *StatSQL) AddUints16Where(v any, where string) (err error) {
+func (a *StatSQL) AddUints16Where(v uint16, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2066,29 +2087,15 @@ func (a *StatSQL) AddUints16Where(v any, where string) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set uints16 = uints16 || '%s'::jsonb where %s", res, where)
-	_, err = conn.Exec(c, q)
+	vvv, _ := jsoniter.Marshal([]uint16{v})
+	vv := string(vvv)
+	q := "update stat set uints16 = uints16 || $1::jsonb where " + where
+	_, err = conn.Exec(c, vv, q)
 	return
 }
 
 // delete array value from jsonb array
-func (a *StatSQL) DeleteUints16Where(v any, where string) (err error) {
-
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-	if err != nil {
-		return
-	}
-	defer conn.Release()
-
-	q := fmt.Sprintf("update stat set uints16 = uints16 - $1 where %s", where)
-	_, err = conn.Exec(c, q, v)
-	return
-}
-
-// add array value to jsonb array
-func (a *StatSQL) AddUints32(id any, v any) (err error) {
+func (a *StatSQL) DeleteUints16Where(v uint16, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2098,14 +2105,15 @@ func (a *StatSQL) AddUints32(id any, v any) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set uints32 = uints32 || '%s'::jsonb where id = $1", res)
-	_, err = conn.Exec(c, q, id)
+	vvv, _ := jsoniter.Marshal([]uint16{v})
+	vv := string(vvv)
+	q := "update stat set uints16 = uints16 - $1::jsonb where " + where
+	_, err = conn.Exec(c, q, vv)
 	return
 }
 
-// delete array value from jsonb array
-func (a *StatSQL) DeleteUints32(id any, v any, where ...string) (err error) {
+// add array value to jsonb array
+func (a *StatSQL) AddUints32(id any, v ...uint32) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2114,16 +2122,37 @@ func (a *StatSQL) DeleteUints32(id any, v any, where ...string) (err error) {
 	}
 	defer conn.Release()
 
-	q := "update stat set uints32 = uints32 - $1 where id = $2"
+	// json escape
+	vvv, _ := jsoniter.Marshal(v)
+	vv := string(vvv)
+	q := "update stat set uints32 = uints32 || $1::jsonb where id = $2"
+	_, err = conn.Exec(c, q, vv, id)
+	return
+}
+
+// delete array value from jsonb array
+func (a *StatSQL) DeleteUints32(id any, v uint32, where ...string) (err error) {
+
+	c := context.Background()
+	conn, err := a.pool.Acquire(c)
+	if err != nil {
+		return
+	}
+	defer conn.Release()
+
+	// json escape
+	vvv, _ := jsoniter.Marshal([]uint32{v})
+	vv := string(vvv)
+	q := "update stat set uints32 = uints32 - $1::jsonb where id = $2"
 	if len(where) > 0 {
 		q += " and " + where[0]
 	}
-	_, err = conn.Exec(c, q, v, id)
+	_, err = conn.Exec(c, q, vv, id)
 	return
 }
 
 // add array value to jsonb array
-func (a *StatSQL) AddUints32Where(v any, where string) (err error) {
+func (a *StatSQL) AddUints32Where(v uint32, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2133,29 +2162,15 @@ func (a *StatSQL) AddUints32Where(v any, where string) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set uints32 = uints32 || '%s'::jsonb where %s", res, where)
-	_, err = conn.Exec(c, q)
+	vvv, _ := jsoniter.Marshal([]uint32{v})
+	vv := string(vvv)
+	q := "update stat set uints32 = uints32 || $1::jsonb where " + where
+	_, err = conn.Exec(c, vv, q)
 	return
 }
 
 // delete array value from jsonb array
-func (a *StatSQL) DeleteUints32Where(v any, where string) (err error) {
-
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-	if err != nil {
-		return
-	}
-	defer conn.Release()
-
-	q := fmt.Sprintf("update stat set uints32 = uints32 - $1 where %s", where)
-	_, err = conn.Exec(c, q, v)
-	return
-}
-
-// add array value to jsonb array
-func (a *StatSQL) AddUints64(id any, v any) (err error) {
+func (a *StatSQL) DeleteUints32Where(v uint32, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2165,14 +2180,15 @@ func (a *StatSQL) AddUints64(id any, v any) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set uints64 = uints64 || '%s'::jsonb where id = $1", res)
-	_, err = conn.Exec(c, q, id)
+	vvv, _ := jsoniter.Marshal([]uint32{v})
+	vv := string(vvv)
+	q := "update stat set uints32 = uints32 - $1::jsonb where " + where
+	_, err = conn.Exec(c, q, vv)
 	return
 }
 
-// delete array value from jsonb array
-func (a *StatSQL) DeleteUints64(id any, v any, where ...string) (err error) {
+// add array value to jsonb array
+func (a *StatSQL) AddUints64(id any, v ...uint64) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2181,16 +2197,37 @@ func (a *StatSQL) DeleteUints64(id any, v any, where ...string) (err error) {
 	}
 	defer conn.Release()
 
-	q := "update stat set uints64 = uints64 - $1 where id = $2"
+	// json escape
+	vvv, _ := jsoniter.Marshal(v)
+	vv := string(vvv)
+	q := "update stat set uints64 = uints64 || $1::jsonb where id = $2"
+	_, err = conn.Exec(c, q, vv, id)
+	return
+}
+
+// delete array value from jsonb array
+func (a *StatSQL) DeleteUints64(id any, v uint64, where ...string) (err error) {
+
+	c := context.Background()
+	conn, err := a.pool.Acquire(c)
+	if err != nil {
+		return
+	}
+	defer conn.Release()
+
+	// json escape
+	vvv, _ := jsoniter.Marshal([]uint64{v})
+	vv := string(vvv)
+	q := "update stat set uints64 = uints64 - $1::jsonb where id = $2"
 	if len(where) > 0 {
 		q += " and " + where[0]
 	}
-	_, err = conn.Exec(c, q, v, id)
+	_, err = conn.Exec(c, q, vv, id)
 	return
 }
 
 // add array value to jsonb array
-func (a *StatSQL) AddUints64Where(v any, where string) (err error) {
+func (a *StatSQL) AddUints64Where(v uint64, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2200,29 +2237,15 @@ func (a *StatSQL) AddUints64Where(v any, where string) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set uints64 = uints64 || '%s'::jsonb where %s", res, where)
-	_, err = conn.Exec(c, q)
+	vvv, _ := jsoniter.Marshal([]uint64{v})
+	vv := string(vvv)
+	q := "update stat set uints64 = uints64 || $1::jsonb where " + where
+	_, err = conn.Exec(c, vv, q)
 	return
 }
 
 // delete array value from jsonb array
-func (a *StatSQL) DeleteUints64Where(v any, where string) (err error) {
-
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-	if err != nil {
-		return
-	}
-	defer conn.Release()
-
-	q := fmt.Sprintf("update stat set uints64 = uints64 - $1 where %s", where)
-	_, err = conn.Exec(c, q, v)
-	return
-}
-
-// add array value to jsonb array
-func (a *StatSQL) AddInts16(id any, v any) (err error) {
+func (a *StatSQL) DeleteUints64Where(v uint64, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2232,14 +2255,15 @@ func (a *StatSQL) AddInts16(id any, v any) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set ints16 = ints16 || '%s'::jsonb where id = $1", res)
-	_, err = conn.Exec(c, q, id)
+	vvv, _ := jsoniter.Marshal([]uint64{v})
+	vv := string(vvv)
+	q := "update stat set uints64 = uints64 - $1::jsonb where " + where
+	_, err = conn.Exec(c, q, vv)
 	return
 }
 
-// delete array value from jsonb array
-func (a *StatSQL) DeleteInts16(id any, v any, where ...string) (err error) {
+// add array value to jsonb array
+func (a *StatSQL) AddInts16(id any, v ...int16) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2248,16 +2272,37 @@ func (a *StatSQL) DeleteInts16(id any, v any, where ...string) (err error) {
 	}
 	defer conn.Release()
 
-	q := "update stat set ints16 = ints16 - $1 where id = $2"
+	// json escape
+	vvv, _ := jsoniter.Marshal(v)
+	vv := string(vvv)
+	q := "update stat set ints16 = ints16 || $1::jsonb where id = $2"
+	_, err = conn.Exec(c, q, vv, id)
+	return
+}
+
+// delete array value from jsonb array
+func (a *StatSQL) DeleteInts16(id any, v int16, where ...string) (err error) {
+
+	c := context.Background()
+	conn, err := a.pool.Acquire(c)
+	if err != nil {
+		return
+	}
+	defer conn.Release()
+
+	// json escape
+	vvv, _ := jsoniter.Marshal([]int16{v})
+	vv := string(vvv)
+	q := "update stat set ints16 = ints16 - $1::jsonb where id = $2"
 	if len(where) > 0 {
 		q += " and " + where[0]
 	}
-	_, err = conn.Exec(c, q, v, id)
+	_, err = conn.Exec(c, q, vv, id)
 	return
 }
 
 // add array value to jsonb array
-func (a *StatSQL) AddInts16Where(v any, where string) (err error) {
+func (a *StatSQL) AddInts16Where(v int16, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2267,29 +2312,15 @@ func (a *StatSQL) AddInts16Where(v any, where string) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set ints16 = ints16 || '%s'::jsonb where %s", res, where)
-	_, err = conn.Exec(c, q)
+	vvv, _ := jsoniter.Marshal([]int16{v})
+	vv := string(vvv)
+	q := "update stat set ints16 = ints16 || $1::jsonb where " + where
+	_, err = conn.Exec(c, vv, q)
 	return
 }
 
 // delete array value from jsonb array
-func (a *StatSQL) DeleteInts16Where(v any, where string) (err error) {
-
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-	if err != nil {
-		return
-	}
-	defer conn.Release()
-
-	q := fmt.Sprintf("update stat set ints16 = ints16 - $1 where %s", where)
-	_, err = conn.Exec(c, q, v)
-	return
-}
-
-// add array value to jsonb array
-func (a *StatSQL) AddInts32(id any, v any) (err error) {
+func (a *StatSQL) DeleteInts16Where(v int16, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2299,14 +2330,15 @@ func (a *StatSQL) AddInts32(id any, v any) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set ints32 = ints32 || '%s'::jsonb where id = $1", res)
-	_, err = conn.Exec(c, q, id)
+	vvv, _ := jsoniter.Marshal([]int16{v})
+	vv := string(vvv)
+	q := "update stat set ints16 = ints16 - $1::jsonb where " + where
+	_, err = conn.Exec(c, q, vv)
 	return
 }
 
-// delete array value from jsonb array
-func (a *StatSQL) DeleteInts32(id any, v any, where ...string) (err error) {
+// add array value to jsonb array
+func (a *StatSQL) AddInts32(id any, v ...int32) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2315,16 +2347,37 @@ func (a *StatSQL) DeleteInts32(id any, v any, where ...string) (err error) {
 	}
 	defer conn.Release()
 
-	q := "update stat set ints32 = ints32 - $1 where id = $2"
+	// json escape
+	vvv, _ := jsoniter.Marshal(v)
+	vv := string(vvv)
+	q := "update stat set ints32 = ints32 || $1::jsonb where id = $2"
+	_, err = conn.Exec(c, q, vv, id)
+	return
+}
+
+// delete array value from jsonb array
+func (a *StatSQL) DeleteInts32(id any, v int32, where ...string) (err error) {
+
+	c := context.Background()
+	conn, err := a.pool.Acquire(c)
+	if err != nil {
+		return
+	}
+	defer conn.Release()
+
+	// json escape
+	vvv, _ := jsoniter.Marshal([]int32{v})
+	vv := string(vvv)
+	q := "update stat set ints32 = ints32 - $1::jsonb where id = $2"
 	if len(where) > 0 {
 		q += " and " + where[0]
 	}
-	_, err = conn.Exec(c, q, v, id)
+	_, err = conn.Exec(c, q, vv, id)
 	return
 }
 
 // add array value to jsonb array
-func (a *StatSQL) AddInts32Where(v any, where string) (err error) {
+func (a *StatSQL) AddInts32Where(v int32, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2334,29 +2387,15 @@ func (a *StatSQL) AddInts32Where(v any, where string) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set ints32 = ints32 || '%s'::jsonb where %s", res, where)
-	_, err = conn.Exec(c, q)
+	vvv, _ := jsoniter.Marshal([]int32{v})
+	vv := string(vvv)
+	q := "update stat set ints32 = ints32 || $1::jsonb where " + where
+	_, err = conn.Exec(c, vv, q)
 	return
 }
 
 // delete array value from jsonb array
-func (a *StatSQL) DeleteInts32Where(v any, where string) (err error) {
-
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-	if err != nil {
-		return
-	}
-	defer conn.Release()
-
-	q := fmt.Sprintf("update stat set ints32 = ints32 - $1 where %s", where)
-	_, err = conn.Exec(c, q, v)
-	return
-}
-
-// add array value to jsonb array
-func (a *StatSQL) AddInts64(id any, v any) (err error) {
+func (a *StatSQL) DeleteInts32Where(v int32, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2366,14 +2405,15 @@ func (a *StatSQL) AddInts64(id any, v any) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set ints64 = ints64 || '%s'::jsonb where id = $1", res)
-	_, err = conn.Exec(c, q, id)
+	vvv, _ := jsoniter.Marshal([]int32{v})
+	vv := string(vvv)
+	q := "update stat set ints32 = ints32 - $1::jsonb where " + where
+	_, err = conn.Exec(c, q, vv)
 	return
 }
 
-// delete array value from jsonb array
-func (a *StatSQL) DeleteInts64(id any, v any, where ...string) (err error) {
+// add array value to jsonb array
+func (a *StatSQL) AddInts64(id any, v ...int64) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2382,16 +2422,37 @@ func (a *StatSQL) DeleteInts64(id any, v any, where ...string) (err error) {
 	}
 	defer conn.Release()
 
-	q := "update stat set ints64 = ints64 - $1 where id = $2"
+	// json escape
+	vvv, _ := jsoniter.Marshal(v)
+	vv := string(vvv)
+	q := "update stat set ints64 = ints64 || $1::jsonb where id = $2"
+	_, err = conn.Exec(c, q, vv, id)
+	return
+}
+
+// delete array value from jsonb array
+func (a *StatSQL) DeleteInts64(id any, v int64, where ...string) (err error) {
+
+	c := context.Background()
+	conn, err := a.pool.Acquire(c)
+	if err != nil {
+		return
+	}
+	defer conn.Release()
+
+	// json escape
+	vvv, _ := jsoniter.Marshal([]int64{v})
+	vv := string(vvv)
+	q := "update stat set ints64 = ints64 - $1::jsonb where id = $2"
 	if len(where) > 0 {
 		q += " and " + where[0]
 	}
-	_, err = conn.Exec(c, q, v, id)
+	_, err = conn.Exec(c, q, vv, id)
 	return
 }
 
 // add array value to jsonb array
-func (a *StatSQL) AddInts64Where(v any, where string) (err error) {
+func (a *StatSQL) AddInts64Where(v int64, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2401,14 +2462,15 @@ func (a *StatSQL) AddInts64Where(v any, where string) (err error) {
 	defer conn.Release()
 
 	// json escape
-	res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")
-	q := fmt.Sprintf("update stat set ints64 = ints64 || '%s'::jsonb where %s", res, where)
-	_, err = conn.Exec(c, q)
+	vvv, _ := jsoniter.Marshal([]int64{v})
+	vv := string(vvv)
+	q := "update stat set ints64 = ints64 || $1::jsonb where " + where
+	_, err = conn.Exec(c, vv, q)
 	return
 }
 
 // delete array value from jsonb array
-func (a *StatSQL) DeleteInts64Where(v any, where string) (err error) {
+func (a *StatSQL) DeleteInts64Where(v int64, where string) (err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2417,8 +2479,11 @@ func (a *StatSQL) DeleteInts64Where(v any, where string) (err error) {
 	}
 	defer conn.Release()
 
-	q := fmt.Sprintf("update stat set ints64 = ints64 - $1 where %s", where)
-	_, err = conn.Exec(c, q, v)
+	// json escape
+	vvv, _ := jsoniter.Marshal([]int64{v})
+	vv := string(vvv)
+	q := "update stat set ints64 = ints64 - $1::jsonb where " + where
+	_, err = conn.Exec(c, q, vv)
 	return
 }
 
@@ -2439,11 +2504,11 @@ type StatQuery struct {
 	INSQL  map[string]string   `json:"insql,omitempty"` //unsafe in (condition)
 }
 
-func (a *StatQuery) Render() (sql string, fields []StatIndexType, values []any) {
+func (a *StatQuery) Render() (sql string, fields []StatIndexTyped, values []any) {
 
 	switch len(a.Fields) == 0 {
 	case true:
-		fields = []StatIndexType{IndexStatID, IndexStatUID, IndexStatType, IndexStatName, IndexStatSource, IndexStatIP, IndexStatImage, IndexStatStack, IndexStatUints, IndexStatUints8, IndexStatUints16, IndexStatUints32, IndexStatUints64, IndexStatInts8, IndexStatInts16, IndexStatInts32, IndexStatInts64}
+		fields = []StatIndexTyped{StatIndexID, StatIndexUID, StatIndexType, StatIndexName, StatIndexSource, StatIndexIP, StatIndexImage, StatIndexStack, StatIndexUints, StatIndexUints8, StatIndexUints16, StatIndexUints32, StatIndexUints64, StatIndexInts8, StatIndexInts16, StatIndexInts32, StatIndexInts64}
 	default:
 		for _, x := range a.Fields {
 			if !StatValidKey(x) {
@@ -2664,7 +2729,7 @@ func NewStatQuery() *StatQuery {
 	return a
 }
 
-func (a *StatSQL) Search(q *StatQuery) (res []*Stat, err error) {
+func (a *StatSQL) Search(q *StatQuery) (res []Stat, err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2694,7 +2759,7 @@ func (a *StatSQL) Search(q *StatQuery) (res []*Stat, err error) {
 		for pos, x := range fields {
 			item.Update(x.String(), v[pos])
 		}
-		res = append(res, &item)
+		res = append(res, item)
 	}
 	err = rows.Err()
 
@@ -2702,7 +2767,7 @@ func (a *StatSQL) Search(q *StatQuery) (res []*Stat, err error) {
 }
 
 // select custom sql query
-func (a *StatSQL) Select(where string, fields ...StatIndexType) (res []*Stat, err error) {
+func (a *StatSQL) Select(where string, fields ...StatIndexTyped) (res []Stat, err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2745,7 +2810,7 @@ func (a *StatSQL) Select(where string, fields ...StatIndexType) (res []*Stat, er
 		for pos, x := range fields {
 			item.Update(x.String(), v[pos])
 		}
-		res = append(res, &item)
+		res = append(res, item)
 	}
 	err = rows.Err()
 	return
@@ -2782,7 +2847,7 @@ func (a *StatSQL) DeleteWhere(where string) (err error) {
 }
 
 // has value in db
-func (a *StatSQL) Has(field StatIndexType, v any) (has bool, err error) {
+func (a *StatSQL) Has(field StatIndexTyped, v any) (has bool, err error) {
 
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
@@ -2825,8 +2890,8 @@ func (a *StatSQL) CreateTable() (err error) {
 }
 
 // parse sql query
-func (a *StatSQL) Fields() (res []StatIndexType) {
-	return []StatIndexType{IndexStatID, IndexStatUID, IndexStatType, IndexStatName, IndexStatSource, IndexStatIP, IndexStatImage, IndexStatStack, IndexStatUints, IndexStatUints8, IndexStatUints16, IndexStatUints32, IndexStatUints64, IndexStatInts8, IndexStatInts16, IndexStatInts32, IndexStatInts64}
+func (a *StatSQL) Fields() (res []StatIndexTyped) {
+	return []StatIndexTyped{StatIndexID, StatIndexUID, StatIndexType, StatIndexName, StatIndexSource, StatIndexIP, StatIndexImage, StatIndexStack, StatIndexUints, StatIndexUints8, StatIndexUints16, StatIndexUints32, StatIndexUints64, StatIndexInts8, StatIndexInts16, StatIndexInts32, StatIndexInts64}
 } //clickhouse StatCQL class
 type StatCQL struct {
 	conn driver.Conn
@@ -2918,7 +2983,7 @@ func (a *StatCQL) deamon() {
 }
 
 // parse clickhouse query
-func (a *StatCQL) Get(id any, fields ...StatIndexType) (res *Stat, err error) {
+func (a *StatCQL) Get(id any, fields ...StatIndexTyped) (res *Stat, err error) {
 
 	if fields == nil {
 		fields = a.Fields()
@@ -2963,7 +3028,7 @@ func (a *StatCQL) Get(id any, fields ...StatIndexType) (res *Stat, err error) {
 }
 
 // parse clickhouse query
-func (a *StatCQL) GetWhere(where string, fields ...StatIndexType) (res *Stat, err error) {
+func (a *StatCQL) GetWhere(where string, fields ...StatIndexTyped) (res *Stat, err error) {
 
 	if fields == nil {
 		fields = a.Fields()
@@ -3092,7 +3157,7 @@ func (a *StatCQL) UpdatesWhere(keys map[string]any, where string, args ...any) (
 }
 
 // select custom clickhouse query
-func (a *StatCQL) Select(where string, fields ...StatIndexType) (res []*Stat, err error) {
+func (a *StatCQL) Select(where string, fields ...StatIndexTyped) (res []*Stat, err error) {
 
 	if fields == nil {
 		fields = a.Fields()
@@ -3157,7 +3222,7 @@ func (a *StatCQL) DeleteWhere(where string) (err error) {
 }
 
 // has value in clickhouse
-func (a *StatCQL) Has(field StatIndexType, v any) (has bool, err error) {
+func (a *StatCQL) Has(field StatIndexTyped, v any) (has bool, err error) {
 	if a.conn == nil {
 		err = errors.New("clickhouse connection is nil")
 		return
@@ -3170,7 +3235,7 @@ func (a *StatCQL) Has(field StatIndexType, v any) (has bool, err error) {
 }
 
 // stat by clickhouse field
-func (a *StatCQL) Stat(field StatIndexType) (res map[string]int, err error) {
+func (a *StatCQL) Stat(field StatIndexTyped) (res map[string]int, err error) {
 	res = make(map[string]int)
 	if a.conn == nil {
 		err = errors.New("clickhouse connection is nil")
@@ -3227,8 +3292,8 @@ primary key (uid)`
 }
 
 // parse clickhouse query
-func (a *StatCQL) Fields() (res []StatIndexType) {
-	return []StatIndexType{IndexStatID, IndexStatUID, IndexStatType, IndexStatName, IndexStatSource, IndexStatIP, IndexStatImage, IndexStatStack, IndexStatUints, IndexStatUints8, IndexStatUints16, IndexStatUints32, IndexStatUints64, IndexStatInts8, IndexStatInts16, IndexStatInts32, IndexStatInts64}
+func (a *StatCQL) Fields() (res []StatIndexTyped) {
+	return []StatIndexTyped{StatIndexID, StatIndexUID, StatIndexType, StatIndexName, StatIndexSource, StatIndexIP, StatIndexImage, StatIndexStack, StatIndexUints, StatIndexUints8, StatIndexUints16, StatIndexUints32, StatIndexUints64, StatIndexInts8, StatIndexInts16, StatIndexInts32, StatIndexInts64}
 }
 
 const (

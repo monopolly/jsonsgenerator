@@ -1,17 +1,20 @@
 package main
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/monopolly/jsonsgenerator/tools"
 )
+
+var sqlQuoted = regexp.MustCompile(`"[^"]*"`)
 
 // sql options
 func (a *Field) parseSQLOptions(v string) {
 
 	a.SQL.NoInsert = strings.Contains(v, "noinsert")
 	a.SQL.Skip = strings.Contains(v, "skip")
-	a.SQL.Primary = strings.Contains(v, "primarykey")
+	a.SQL.Primary = strings.Contains(sqlQuoted.ReplaceAllString(v, ""), "primary") // ignore add="primary key"
 	a.SQL.Inc = strings.Contains(v, "inc")
 	a.SQL.Get = strings.Contains(v, "get")
 	if a.SQL.Inc {
@@ -27,6 +30,7 @@ func (a *Field) parseSQLOptions(v string) {
 	a.SQL.Replace = tools.Between(v, `replace="`, `"`)
 	a.SQL.Append = tools.Between(v, `add="`, `"`)
 	a.SQL.Unique = tools.Betweens(v, `unique="`, `"`)
+	// a.SQL.PrimaryKeys = tools.Betweens(v, `primary="`, `"`)
 	a.SQL.Rename = tools.Between(v, `renames="`, `"`)
 	a.SQL.Keys = tools.Between(v, `keys="`, `"`)
 	a.SQL.Index.Group = tools.Betweens(v, `idx="`, `"`)
@@ -49,6 +53,7 @@ func (a *Field) parseSQLOptions(v string) {
 	DetectSQLDefault(a)
 
 	// help
+	helps.SQL["primary"] = "Primary key. One field: asset bigint primary key. Several fields: primary key (asset, user)"
 	helps.SQL["noinsert"] = "Do use field for insert function"
 	helps.SQL["index"] = "Create simple default index or gin for jsonb"
 	helps.SQL["altertable"] = "Add field line Alter table to SQL file with current time comment"

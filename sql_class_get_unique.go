@@ -28,7 +28,7 @@ func (a *SQL) GetUnique() []byte {
 
 	var list []string
 	list = append(list, "\n//parse sql query")
-	list = append(list, fmt.Sprintf(`func (a *%s) Get(id any, fields ...%s) (res *%s, err error) {`, settings.SQL.Class, settings.IndexTypeName, settings.Go.StructName))
+	list = append(list, fmt.Sprintf(`func (a *%s) Get(id any, fields ...%s) (res %s, err error) {`, settings.SQL.Class, settings.IndexTypeName, settings.Go.StructName))
 
 	list = append(list, `
 	c := context.Background()
@@ -40,7 +40,7 @@ func (a *SQL) GetUnique() []byte {
 	`)
 
 	// if fields == nil
-	ifNilFields := `if fields == nil { 
+	ifNilFields := `if fields == nil {
 		fields = a.Fields()
 	}`
 	// ifNilFields = tools.Replace(ifNilFields, "allFields", strings.Join(settings.Go.Indexes, ","))
@@ -60,7 +60,7 @@ func (a *SQL) GetUnique() []byte {
 	}
 	list = append(list, `q := fmt.Sprintf("select %s ", fieldlist)`)
 	list = append(list, fmt.Sprintf(`q = q + "from %s where %s = $1 limit 1"`, settings.SQL.Table, incField))
-	list = append(list, fmt.Sprintf(`res = new(%s)`, settings.Go.StructName))
+	// list = append(list, fmt.Sprintf(`res = new(%s)`, settings.Go.StructName))
 
 	list = append(list, `rows, err := conn.Query(c, q, id)
 	if err != nil {

@@ -17,14 +17,7 @@ func (a *Golang) IndexStrings() []byte {
 	list = append(list, "const (")
 	for _, x := range fields {
 		//fieldNewsID
-
-		switch settings.Go.NoPrefix {
-		case true:
-			x.FieldName = fmt.Sprintf("%s%s", prefix, x.Go.Name)
-		case false:
-			x.FieldName = fmt.Sprintf("%s%s%s", prefix, settings.Go.StructName, x.Go.Name)
-		}
-
+		x.FieldName = fmt.Sprintf("%s%s%s", settings.Go.StructName, prefix, x.Go.Name)
 		var line string
 
 		switch x.Json.Name != "" {

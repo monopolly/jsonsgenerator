@@ -33,6 +33,32 @@ func (a *SQL) UpdateJsonb() []byte {
 // update jsob map
 func (a *SQL) updateJsonbMap(x *Field) []byte {
 
+	ff := `
+		func (a *sql_class) UpdateGo_name(id any, k string, v any, where ...string) (err error) {
+
+			var custom string
+			if len(where) > 0 {
+				custom = " and " where[0]
+			}
+
+			q := "update table_name set #SQLFIELDNAME = #SQLFIELDNAME || $1::jsonb where #INCFIELD"
+
+			return a.Conn(func(conn *pool.Conn)(err error){
+				_,err = conn.Exec(c, #SQL+custom, id)
+			})
+		}
+
+	`
+
+	ff = strings.ReplaceAll(ff, "#SQLCLASS", settings.SQL.Class)
+	ff = strings.ReplaceAll(ff, "#GONAME", x.Go.Name)
+
+	q := `update #TABLENAME set #SQLFIELDNAME = #SQLFIELDNAME || %s::jsonb where #INCFIELD`
+	q = strings.ReplaceAll(q, "#TABLENAME", settings.SQL.Table)
+	q = strings.ReplaceAll(q, "#SQLFIELDNAME", x.SQL.Name)
+
+	ff = strings.ReplaceAll(ff, "#SQL", q)
+
 	var list []string
 	list = append(list, "\n//update sql query")
 	list = append(list, fmt.Sprintf(`func (a *%s) Update%s(id any, k string, v any, where ...string) (err error) {`, settings.SQL.Class, x.Go.Name))
@@ -186,7 +212,7 @@ func (a *SQL) updateJsonbArray(x *Field) []byte {
 
 	var list []string
 	list = append(list, "\n//add array value to jsonb array")
-	list = append(list, fmt.Sprintf(`func (a *%s) Add%s(id any, v any) (err error) {`, settings.SQL.Class, x.Go.Name))
+	list = append(list, fmt.Sprintf(`func (a *%s) Add%s(id any, v ...%s) (err error) {`, settings.SQL.Class, x.Go.Name, x.Go.ArrayType))
 
 	list = append(list, `
 	c := context.Background()
@@ -202,10 +228,11 @@ func (a *SQL) updateJsonbArray(x *Field) []byte {
 	sql = tools.Replace(sql, "sqlFieldName", x.SQL.Name)
 
 	list = append(list, `//json escape`)
-	list = append(list, `res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")`)
-	list = append(list, `q := fmt.Sprintf("`+sql+` || '%s'::jsonb where `+incField+` = $1",  res)`)
+	list = append(list, "vvv, _ := jsoniter.Marshal(v)")
+	list = append(list, "vv := string(vvv)")
+	list = append(list, `q := "`+sql+` || $1::jsonb where `+incField+` = $2"`)
 
-	list = append(list, "_,err = conn.Exec(c, q, id)")
+	list = append(list, "_,err = conn.Exec(c, q, vv, id)")
 	list = append(list, "return")
 	list = append(list, "}")
 
@@ -216,7 +243,7 @@ func (a *SQL) updateJsonbArray(x *Field) []byte {
 		WHERE id = 7;  */
 
 	list = append(list, "\n//delete array value from jsonb array")
-	list = append(list, fmt.Sprintf(`func (a *%s) Delete%s(id any, v any, where ...string) (err error) {`, settings.SQL.Class, x.Go.Name))
+	list = append(list, fmt.Sprintf(`func (a *%s) Delete%s(id any, v %s, where ...string) (err error) {`, settings.SQL.Class, x.Go.Name, x.Go.ArrayType))
 
 	list = append(list, `
 	c := context.Background()
@@ -230,9 +257,15 @@ func (a *SQL) updateJsonbArray(x *Field) []byte {
 	sql = "update tableName set sqlFieldName = sqlFieldName"
 	sql = tools.Replace(sql, "tableName", settings.SQL.Table)
 	sql = tools.Replace(sql, "sqlFieldName", x.SQL.Name)
-	list = append(list, `q := "`+sql+` - $1 where `+incField+` = $2"`)
+
+	list = append(list, `//json escape`)
+	list = append(list, fmt.Sprintf("vvv, _ := jsoniter.Marshal(%s{v})", x.Type))
+	list = append(list, "vv := string(vvv)")
+	list = append(list, `q := "`+sql+` - $1::jsonb where `+incField+` = $2"`)
+
+	// list = append(list, `q := "`+sql+` - $1 where `+incField+` = $2"`)
 	list = append(list, `if len(where) > 0 {q += " and "+ where[0]}`)
-	list = append(list, "_,err = conn.Exec(c, q, v, id)")
+	list = append(list, "_,err = conn.Exec(c, q, vv, id)")
 	list = append(list, "return")
 	list = append(list, "}")
 
@@ -251,7 +284,7 @@ func (a *SQL) updateJsonbArrayWhere(x *Field) []byte {
 
 	var list []string
 	list = append(list, "\n//add array value to jsonb array")
-	list = append(list, fmt.Sprintf(`func (a *%s) Add%sWhere(v any, where string) (err error) {`, settings.SQL.Class, x.Go.Name))
+	list = append(list, fmt.Sprintf(`func (a *%s) Add%sWhere(v %s, where string) (err error) {`, settings.SQL.Class, x.Go.Name, x.Go.ArrayType))
 
 	list = append(list, `
 	c := context.Background()
@@ -266,10 +299,16 @@ func (a *SQL) updateJsonbArrayWhere(x *Field) []byte {
 	sql = tools.Replace(sql, "tableName", settings.SQL.Table)
 	sql = tools.Replace(sql, "sqlFieldName", x.SQL.Name)
 
+	// list = append(list, `//json escape`)
+	// list = append(list, `res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")`)
+	// list = append(list, `q := fmt.Sprintf("`+sql+` || '%s'::jsonb where %s",  res, where)`)
+
 	list = append(list, `//json escape`)
-	list = append(list, `res := strings.ReplaceAll(jsons.Create().Array(v).String(), "$$", "$ $")`)
-	list = append(list, `q := fmt.Sprintf("`+sql+` || '%s'::jsonb where %s",  res, where)`)
-	list = append(list, "_,err = conn.Exec(c, q)")
+	list = append(list, fmt.Sprintf("vvv, _ := jsoniter.Marshal(%s{v})", x.Type))
+	list = append(list, "vv := string(vvv)")
+	list = append(list, `q := "`+sql+` || $1::jsonb where " + where`)
+
+	list = append(list, "_,err = conn.Exec(c, vv, q)")
 	list = append(list, "return")
 	list = append(list, "}")
 
@@ -280,7 +319,7 @@ func (a *SQL) updateJsonbArrayWhere(x *Field) []byte {
 		WHERE id = 7;  */
 
 	list = append(list, "\n//delete array value from jsonb array")
-	list = append(list, fmt.Sprintf(`func (a *%s) Delete%sWhere(v any, where string) (err error) {`, settings.SQL.Class, x.Go.Name))
+	list = append(list, fmt.Sprintf(`func (a *%s) Delete%sWhere(v %s, where string) (err error) {`, settings.SQL.Class, x.Go.Name, x.Go.ArrayType))
 
 	list = append(list, `
 	c := context.Background()
@@ -294,8 +333,14 @@ func (a *SQL) updateJsonbArrayWhere(x *Field) []byte {
 	sql = "update tableName set sqlFieldName = sqlFieldName"
 	sql = tools.Replace(sql, "tableName", settings.SQL.Table)
 	sql = tools.Replace(sql, "sqlFieldName", x.SQL.Name)
-	list = append(list, `q := fmt.Sprintf("`+sql+` - $1 where %s",where)`)
-	list = append(list, "_,err = conn.Exec(c, q, v)")
+
+	list = append(list, `//json escape`)
+	list = append(list, fmt.Sprintf("vvv, _ := jsoniter.Marshal(%s{v})", x.Type))
+	list = append(list, "vv := string(vvv)")
+	list = append(list, `q := "`+sql+` - $1::jsonb where " + where`)
+
+	// list = append(list, `q := fmt.Sprintf("`+sql+` - $1 where %s",where)`)
+	list = append(list, "_,err = conn.Exec(c, q, vv)")
 	list = append(list, "return")
 	list = append(list, "}")
 

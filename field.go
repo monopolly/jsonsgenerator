@@ -3,7 +3,7 @@ package main
 type Field struct {
 	// ID        string // original struct name: types
 	Name      string // json struct name: type
-	Type      string //int
+	Type      string //[]int
 	Comment   string //nice touch
 	FieldName string // fieldType for field index
 
@@ -38,9 +38,10 @@ type Field struct {
 	}
 
 	Go struct {
-		Index string // IndexType for ordinal index: IndexType = 0, etc.
-		Name  string // Created, ID
-		Type  string // []*List
+		Index     string // IndexType for ordinal index: IndexType = 0, etc.
+		Name      string // Created, ID
+		Type      string // []*List
+		ArrayType string //int
 
 		Nofunc        bool
 		Func          string          //NewsAdd
@@ -82,18 +83,19 @@ type Field struct {
 			Simple   bool
 			Unixtime bool
 		}
-		Inc        bool     //"bigserial primary key" noinsert
-		Skip       bool     // skip in sql table
-		Unique     []string //unique fields
-		Primary    bool     //primary key fields
-		AlterTable string   //version || 1
-		Rename     string   //rename="oldname"
+		Inc     bool     //"bigserial primary key" noinsert
+		Skip    bool     // skip in sql table
+		Unique  []string //unique fields
+		Primary bool     //primary key fields
+		// PrimaryKeys []string //primary key fields
+		AlterTable string //version || 1
+		Rename     string //rename="oldname"
 	}
 
 	Clickhouse struct {
 		Name    string //sql name id, name...
 		Type    string //new sql type https://clickhouse.com/docs/sql-reference/data-types/int-uint
-		Skip    bool   // skip in sql table
+		Skip    bool   //skip in sql table
 		Primary bool   //primary key fields PRIMARY KEY(category_id, sale_date)
 		Unix    bool   //primary key fields PRIMARY KEY(category_id, sale_date)
 		Low     bool   //low cardinality

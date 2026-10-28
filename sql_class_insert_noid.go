@@ -12,7 +12,7 @@ func (a *SQL) insertNoID() []byte {
 
 	var list []string
 	list = append(list, "//Insert struct and no return id")
-	list = append(list, fmt.Sprintf(`func (a *%s) Insert(v *%s) (err error) {`, settings.SQL.Class, settings.Go.StructName))
+	list = append(list, fmt.Sprintf(`func (a *%s) Insert(v %s) (err error) {`, settings.SQL.Class, settings.Go.StructName))
 
 	list = append(list, `
 	c := context.Background()

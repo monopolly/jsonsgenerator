@@ -12,7 +12,7 @@ func (a *SQL) List() []byte {
 
 	var list []string
 	list = append(list, "//get simple list from db")
-	list = append(list, fmt.Sprintf(`func (a *%s) List(limit, offset int, fields ...%s) (res []*%s, err error) {`,
+	list = append(list, fmt.Sprintf(`func (a *%s) List(limit, offset int, fields ...%s) (res []%s, err error) {`,
 		settings.SQL.Class,
 		settings.IndexTypeName,
 		settings.Go.StructName,
@@ -28,7 +28,7 @@ func (a *SQL) List() []byte {
 	`)
 
 	// if fields == nil
-	ifNilFields := `if fields == nil { 
+	ifNilFields := `if fields == nil {
 		fields = a.Fields()
 	}`
 	// ifNilFields = tools.Replace(ifNilFields, "allFields", strings.Join(settings.Go.Indexes, ","))
@@ -59,16 +59,16 @@ func (a *SQL) List() []byte {
 		if err != nil {
 			continue
 		}
-		if len(v) != len(fields){			
+		if len(v) != len(fields){
 			continue
 		}
 		for pos, x := range fields {
 			item.Update(x.String(), v[pos])
 		}
-		res = append(res, &item)
+		res = append(res, item)
 	}
 	err = rows.Err()
-	
+
 	`, settings.Go.StructName),
 	)
 

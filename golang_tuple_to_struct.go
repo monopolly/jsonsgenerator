@@ -13,8 +13,7 @@ func (a *Golang) TupleToStruct() []byte {
 	parse := []string{
 		"\n",
 		"//Parse []any to ID struct",
-		fmt.Sprintf(`func Parse%[1]sToStruct(r []any) (a *%[2]s){
-			a = new(%[2]s)
+		fmt.Sprintf(`func Parse%[1]sToStruct(r []any) (a %[2]s){
 			`, settings.Go.StructName, settings.Go.StructName),
 		"for pos, x := range r {",
 		fmt.Sprintf("switch %s(pos) {", settings.IndexTypeName),

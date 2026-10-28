@@ -35,9 +35,9 @@ func (a *SQL) File() []byte {
 		verify  	boolean default false,
 	  	meta    	jsonb default '{}'::jsonb */
 
-	var list, fieldList, primary []string
+	var list, fieldList []string
 	unique := make(map[string]map[string]bool)
-	var hasPrimary bool
+	hasPrimary := len(a.primaryKeys()) > 0
 
 	//list = append(list, fmt.Sprintf(`drop table if exists %s;`, table))
 	list = append(list, fmt.Sprintf(`--drop table %s;`, settings.SQL.Table))
@@ -54,18 +54,11 @@ func (a *SQL) File() []byte {
 		if len(x.SQL.Name) > pad {
 			pad = len(x.SQL.Name)
 		}
-		if !x.SQL.Skip && x.SQL.Primary {
-			hasPrimary = true
-		}
 	}
 
 	for _, x := range fields {
 		if x.SQL.Skip {
 			continue
-		}
-
-		if x.SQL.Primary {
-			primary = append(primary, x.SQL.Name)
 		}
 
 		switch x.SQL.Type {
@@ -147,6 +140,9 @@ func (a *SQL) File() []byte {
 			sqlFieldLine = append(sqlFieldLine, x.SQL.Default.Value)
 		}
 
+		// single primary key
+		sqlFieldLine = a.primaryKeyField(x, sqlFieldLine)
+
 		sqltype := fmt.Sprintf("\t%s%s%s", x.SQL.Name, strings.Repeat(" ", (pad+5)-len(x.SQL.Name)), strings.Join(sqlFieldLine, " "))
 
 		// sqltype := tools.Formatline("\t"+x.SQL.Name, strings.Join(sqlFieldLine, " "))
@@ -182,8 +178,8 @@ func (a *SQL) File() []byte {
 	}
 
 	// primary keys
-	if primary != nil {
-		fieldList = append(fieldList, fmt.Sprintf("\tprimary key (%s)", strings.Join(primary, ",")))
+	if primary := a.primaryKeySQL(); primary != "" {
+		fieldList = append(fieldList, primary)
 	}
 
 	list = append(list, strings.Join(fieldList, ",\n"))

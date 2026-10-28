@@ -15,6 +15,7 @@ func (a *SQL) Generate() []byte {
 
 	// sql class
 	list = append(list, a.Class())
+	list = append(list, a.ClassConn())
 	list = append(list, a.Conn())
 	list = append(list, a.TableName())
 	list = append(list, a.Count())
@@ -62,6 +63,30 @@ func (a *SQL) Class() []byte {
 		a.pool = pool
 		a.CreateTable()
 		return
+	}
+	`
+
+	/*
+		conn, err := a.pool.Acquire(context.Background())
+		if err != nil {
+			return
+		}
+		defer conn.Release()
+	*/
+	list = append(list, fmt.Sprintf(sqlstructs, settings.SQL.Class))
+
+	return []byte(strings.Join(list, "\n"))
+
+}
+
+// type AccountsSQL int
+func (a *SQL) ClassConn() []byte {
+
+	var list []string
+	// Pool    *pgxpool.Pool
+	sqlstructs := `
+	func Conn%[1]s(pool *pgxpool.Pool) (a *%[1]s){
+		return &%[1]s{pool}
 	}
 	`
 

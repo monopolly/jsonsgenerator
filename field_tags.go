@@ -8,7 +8,7 @@ import (
 // tags
 func (a *Field) parseTagsOptions() {
 	helps.Golang["#"] = "Add lists for fields. Ex: id int //#readonly #must..."
-	for _, x := range strings.Fields(a.Comment) {
+	for x := range strings.FieldsSeq(a.Comment) {
 		tag := tools.Value(x, "#")
 		if tag != "" {
 			tag = strings.TrimSpace(tag)

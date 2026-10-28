@@ -12,7 +12,7 @@ func (a *SQL) Select() []byte {
 
 	var list []string
 	list = append(list, "\n//select custom sql query")
-	list = append(list, fmt.Sprintf(`func (a *%s) Select(where string, fields ...%s) (res []*%s, err error) {`, settings.SQL.Class, settings.IndexTypeName, settings.Go.StructName))
+	list = append(list, fmt.Sprintf(`func (a *%s) Select(where string, fields ...%s) (res []%s, err error) {`, settings.SQL.Class, settings.IndexTypeName, settings.Go.StructName))
 
 	list = append(list, `
 	c := context.Background()
@@ -24,7 +24,7 @@ func (a *SQL) Select() []byte {
 	`)
 
 	// if fields == nil
-	ifNilFields := `if fields == nil { 
+	ifNilFields := `if fields == nil {
 		fields = a.Fields()
 	}`
 	// ifNilFields = tools.Replace(ifNilFields, "allFields", strings.Join(settings.Go.Indexes, ","))
@@ -63,7 +63,7 @@ func (a *SQL) Select() []byte {
 		for pos, x := range fields {
 			item.Update(x.String(), v[pos])
 		}
-		res = append(res, &item)
+		res = append(res, item)
 	}
 	err = rows.Err()`
 

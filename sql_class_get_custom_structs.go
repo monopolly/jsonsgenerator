@@ -32,7 +32,7 @@ func (a *SQL) getCustomStructs(name string) []byte {
 
 	var list []string
 	list = append(list, "\n//get custom struct sql query")
-	list = append(list, fmt.Sprintf(`func (a *%[1]s) Get%[2]s(id any) (res *%[3]s%[2]s, err error) {`, settings.SQL.Class, tools.Title(name), settings.Go.StructName))
+	list = append(list, fmt.Sprintf(`func (a *%[1]s) Get%[2]s(id any) (res %[3]s%[2]s, err error) {`, settings.SQL.Class, tools.Title(name), settings.Go.StructName))
 	list = append(list, fmt.Sprintf("p, err := a.Get(id, %s%sList()...)", settings.Go.StructName, tools.Title(name)))
 	list = append(list, `if err != nil{return}`)
 	list = append(list, fmt.Sprintf("res = p.%s%s()", settings.Go.StructName, tools.Title(name)))

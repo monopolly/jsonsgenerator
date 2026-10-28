@@ -111,7 +111,7 @@ func (a *Settings) Parse(in string) {
 	a.Clickhouse.QueryName = fmt.Sprintf("%sClickhouseQuery", a.Go.StructName)
 
 	// indextype
-	a.IndexTypeName = fmt.Sprintf("%sIndexType", a.Go.StructName)
+	a.IndexTypeName = fmt.Sprintf("%sIndexTyped", a.Go.StructName)
 
 	// fields
 	for _, x := range res.Fields {

@@ -16,13 +16,7 @@ func (a *Golang) IndexInt() []byte {
 	list = append(list, "//int index")
 	list = append(list, "const (")
 	for pos, x := range fields {
-		switch settings.Go.NoPrefix {
-		case true:
-			x.Go.Index = fmt.Sprintf("%s%s", prefix, x.Go.Name) //NewsID
-		case false:
-			x.Go.Index = fmt.Sprintf("%s%s%s", prefix, settings.Go.StructName, x.Go.Name) //IndexNewsID
-		}
-
+		x.Go.Index = fmt.Sprintf("%s%s%s", settings.Go.StructName, prefix, x.Go.Name) //NewsIndexTitle
 		settings.Go.Indexes = append(settings.Go.Indexes, x.Go.Index)
 
 		var line string

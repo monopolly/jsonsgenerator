@@ -12,7 +12,7 @@ func (a *SQL) GetWhere() []byte {
 
 	var list []string
 	list = append(list, "\n//parse sql query")
-	list = append(list, fmt.Sprintf(`func (a *%s) GetWhere(where string, fields ...%s) (res *%s, err error) {`, settings.SQL.Class, settings.IndexTypeName, settings.Go.StructName))
+	list = append(list, fmt.Sprintf(`func (a *%s) GetWhere(where string, fields ...%s) (res %s, err error) {`, settings.SQL.Class, settings.IndexTypeName, settings.Go.StructName))
 
 	list = append(list, `
 	c := context.Background()
@@ -24,7 +24,7 @@ func (a *SQL) GetWhere() []byte {
 	`)
 
 	// if fields == nil
-	ifNilFields := `if fields == nil { 
+	ifNilFields := `if fields == nil {
 		fields = a.Fields()
 	}`
 	// ifNilFields = tools.Replace(ifNilFields, "allFields", strings.Join(settings.Go.Indexes, ","))
@@ -43,7 +43,7 @@ func (a *SQL) GetWhere() []byte {
 	list = append(list, fmt.Sprintf(`q = q + " from %s"`, settings.SQL.Table))
 	list = append(list, `q = q + fmt.Sprintf(" where %s ", where)`)
 	list = append(list, `q = q + " limit 1"`)
-	list = append(list, fmt.Sprintf(`res = new(%s)`, settings.Go.StructName))
+	// list = append(list, fmt.Sprintf(`res = new(%s)`, settings.Go.StructName))
 
 	list = append(list, `rows, err := conn.Query(c, q)
 	if err != nil {

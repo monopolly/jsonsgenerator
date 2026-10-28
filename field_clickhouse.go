@@ -36,10 +36,10 @@ func (a *Field) parseClickhouseOptions(v string) {
 	// help
 	// helps.Clickhouse[`type="uint256"`] = `Rewrite sql type for field. Ex: type="jsonb"`
 	// helps.Clickhouse["skip"] = "Skip field for sql queries"
-	// helps.Clickhouse[`primary or !!"`] = `Make primary key`
+	helps.Clickhouse[`primary"`] = `ch{primary} Make primary key`
 	// helps.Clickhouse["unix"] = "Set DateTime type"
-	helps.Clickhouse["low"] = "Wrap field type in LowCardinality(...)"
-	helps.Clickhouse[`type=ip`] = `Use ClickHouse IPv4 type for IP address fields`
+	helps.Clickhouse["low"] = "ch{low} Wrap field type in LowCardinality(...)"
+	helps.Clickhouse[`type=ip`] = `ch{type=ip} Use ClickHouse IPv4 type for IP address fields`
 	// helps.Clickhouse[`type=ipv4`] = `Use ClickHouse IPv4 type for IP address fields`
 
 }

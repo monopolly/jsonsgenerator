@@ -12,7 +12,7 @@ func (a *SQL) InsertFull() []byte {
 
 	var list []string
 	list = append(list, "//Insert full struct ID must be (ignore all skips)")
-	list = append(list, fmt.Sprintf(`func (a *%s) InsertFull(v *%s) (err error) {`, settings.SQL.Class, settings.Go.StructName))
+	list = append(list, fmt.Sprintf(`func (a *%s) InsertFull(v %s) (err error) {`, settings.SQL.Class, settings.Go.StructName))
 
 	list = append(list, `
 	c := context.Background()

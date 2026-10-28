@@ -13,20 +13,20 @@ func (a *SQL) Search() []byte {
 
 	var list []string
 
-	s := `func (a *sqlClassName) Search(q *sqlQueryName) (res []*goStruct, err error) {
-	
+	s := `func (a *sqlClassName) Search(q *sqlQueryName) (res []goStruct, err error) {
+
 	c := context.Background()
 	conn, err := a.pool.Acquire(c)
 		if err != nil {
 			return
 		}
 	defer conn.Release()
-	
+
 
 	sql, fields, values := q.Render()
 
 	rows, err := conn.Query(c, sql, values...)
-	if err != nil {		
+	if err != nil {
 		return
 	}
 	defer rows.Close()
@@ -44,7 +44,7 @@ func (a *SQL) Search() []byte {
 		for pos, x := range fields {
 			item.Update(x.String(), v[pos])
 		}
-		res = append(res, &item)
+		res = append(res, item)
 	}
 	err = rows.Err()
 
