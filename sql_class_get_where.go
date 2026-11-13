@@ -14,14 +14,7 @@ func (a *SQL) GetWhere() []byte {
 	list = append(list, "\n//parse sql query")
 	list = append(list, fmt.Sprintf(`func (a *%s) GetWhere(where string, fields ...%s) (res %s, err error) {`, settings.SQL.Class, settings.IndexTypeName, settings.Go.StructName))
 
-	list = append(list, `
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-		if err != nil {
-			return
-		}
-		defer conn.Release()
-	`)
+	list = append(list, sqlConnOpen)
 
 	// if fields == nil
 	ifNilFields := `if fields == nil {
@@ -67,6 +60,6 @@ func (a *SQL) GetWhere() []byte {
 	}
 	err = rows.Err()`)
 
-	list = append(list, "return}")
+	list = append(list, "return", sqlConnClose)
 	return []byte(strings.Join(list, "\n"))
 }

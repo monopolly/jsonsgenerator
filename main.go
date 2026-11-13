@@ -96,8 +96,8 @@ func render() {
 	// gosql
 	file.Save(settings.File.golang, goFile.Bytes())
 	goFmt()
-	goFile.Write(easyjsonCompile())
-	file.Save(settings.File.golang, addGoImports(goFile.Bytes(), easyjsonImports()))
+	// goFile.Write(easyjsonCompile())
+	// file.Save(settings.File.golang, addGoImports(goFile.Bytes(), easyjsonImports()))
 
 	// ts
 	if settings.TS.Name != "" {
@@ -194,37 +194,37 @@ func goFmt() {
 	p.Run()
 }
 
-func easyjsonCompile() []byte {
-	outfile := path.Join(settings.File.path, fmt.Sprintf("%s_easy.go", settings.Origin))
-	p := exec.Command(
-		"easyjson",
-		"-output_filename="+outfile,
-		settings.File.golang,
-	)
-	out, err := p.CombinedOutput()
-	if err != nil {
-		log.Fatalf("easyjson failed: %v\n%s", err, string(out))
-	}
+// func easyjsonCompile() []byte {
+// 	outfile := path.Join(settings.File.path, fmt.Sprintf("%s_easy.go", settings.Origin))
+// 	p := exec.Command(
+// 		"easyjson",
+// 		"-output_filename="+outfile,
+// 		settings.File.golang,
+// 	)
+// 	out, err := p.CombinedOutput()
+// 	if err != nil {
+// 		log.Fatalf("easyjson failed: %v\n%s", err, string(out))
+// 	}
 
-	body, err := os.ReadFile(outfile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	_ = os.Remove(outfile)
-	res := generatedGoBody(body)
-	res = append(res, golang.EasyJsonMarshal()...)
-	res = append(res, golang.EasyJsonUnmarshal()...)
-	return res
-}
+// 	body, err := os.ReadFile(outfile)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	_ = os.Remove(outfile)
+// 	res := generatedGoBody(body)
+// 	// res = append(res, golang.EasyJsonMarshal()...)
+// 	// res = append(res, golang.EasyJsonUnmarshal()...)
+// 	return res
+// }
 
-func easyjsonImports() []string {
-	return []string{
-		`json "encoding/json"`,
-		`easyjson "github.com/mailru/easyjson"`,
-		`jlexer "github.com/mailru/easyjson/jlexer"`,
-		`jwriter "github.com/mailru/easyjson/jwriter"`,
-	}
-}
+// func easyjsonImports() []string {
+// 	return []string{
+// 		`json "encoding/json"`,
+// 		`easyjson "github.com/mailru/easyjson"`,
+// 		`jlexer "github.com/mailru/easyjson/jlexer"`,
+// 		`jwriter "github.com/mailru/easyjson/jwriter"`,
+// 	}
+// }
 
 func addGoImports(src []byte, imports []string) []byte {
 	s := string(src)
@@ -324,6 +324,7 @@ func importers() []byte {
 		imports["errors"] = true
 		imports["strings"] = true
 		imports["github.com/jackc/pgx/v5/pgxpool"] = true
+		imports["github.com/jackc/pgx/v5"] = true
 	}
 	if settings.Clickhouse.Table != "" {
 		imports["context"] = true

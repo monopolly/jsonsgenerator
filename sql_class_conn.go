@@ -9,7 +9,7 @@ import (
 func (a *SQL) Conn() []byte {
 
 	var list []string
-	list = append(list, "\n//delete item")
+	list = append(list, "\n//new conn")
 	list = append(list, fmt.Sprintf(`
 	func (a *%s) Conn(f func(conn *pgxpool.Conn) (err error)) (err error) {
 
@@ -24,3 +24,12 @@ func (a *SQL) Conn() []byte {
 
 	return []byte(strings.Join(list, "\n"))
 }
+
+// generated funcs: wrap body into a.Conn (body must end with return)
+const sqlConnOpen = `
+	c := context.Background()
+	err = a.Conn(func(conn *pgxpool.Conn) (err error) {
+`
+
+// close a.Conn wrapper and generated func
+const sqlConnClose = "})\nreturn\n}"

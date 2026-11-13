@@ -14,14 +14,7 @@ func (a *SQL) InsertFull() []byte {
 	list = append(list, "//Insert full struct ID must be (ignore all skips)")
 	list = append(list, fmt.Sprintf(`func (a *%s) InsertFull(v %s) (err error) {`, settings.SQL.Class, settings.Go.StructName))
 
-	list = append(list, `
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-		if err != nil {
-			return
-		}
-		defer conn.Release()
-	`)
+	list = append(list, sqlConnOpen)
 
 	//`insert into users (id, login) values ($1, $2)`
 
@@ -45,8 +38,7 @@ func (a *SQL) InsertFull() []byte {
 	list = append(list, q)
 	list = append(list, `_, err = conn.Exec(c, q, v.sqlAllTuples()...)`)
 
-	list = append(list, "return")
-	list = append(list, "}")
+	list = append(list, "return", sqlConnClose)
 
 	return []byte(strings.Join(list, "\n"))
 }

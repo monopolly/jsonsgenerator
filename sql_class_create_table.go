@@ -128,6 +128,15 @@ func (a *SQL) createTableSQL() (res string) {
 
 	}
 
+	// search index tsvector column
+	for groupname, fieldslist := range indexsearch {
+		var names []string
+		for name := range fieldslist {
+			names = append(names, name)
+		}
+		fieldList = append(fieldList, fmt.Sprintf("\t%s%s%s", groupname, strings.Repeat(" ", (pad+5)-len(groupname)), fmt.Sprintf("tsvector generated always as (to_tsvector('simple', %s)) stored", strings.Join(names, " || ' ' || "))))
+	}
+
 	// unique constrains
 	for _, fieldnames := range unique {
 		var untag []string

@@ -14,14 +14,7 @@ func (a *SQL) insertNoID() []byte {
 	list = append(list, "//Insert struct and no return id")
 	list = append(list, fmt.Sprintf(`func (a *%s) Insert(v %s) (err error) {`, settings.SQL.Class, settings.Go.StructName))
 
-	list = append(list, `
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-		if err != nil {
-			return
-		}
-		defer conn.Release()
-	`)
+	list = append(list, sqlConnOpen)
 
 	//`insert into users (id, login) values ($1, $2)`
 
@@ -45,8 +38,7 @@ func (a *SQL) insertNoID() []byte {
 	list = append(list, q)
 	list = append(list, `_, err = conn.Exec(c, q, v.sqlTuple()...)`)
 
-	list = append(list, "return")
-	list = append(list, "}")
+	list = append(list, "return", sqlConnClose)
 
 	return []byte(strings.Join(list, "\n"))
 }
@@ -58,14 +50,7 @@ func (a *SQL) insertNoIDNoConflict() []byte {
 	list = append(list, "//Insert struct and no return id")
 	list = append(list, fmt.Sprintf(`func (a *%s) InsertNoConflict(v *%s) (err error) {`, settings.SQL.Class, settings.Go.StructName))
 
-	list = append(list, `
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-		if err != nil {
-			return
-		}
-		defer conn.Release()
-	`)
+	list = append(list, sqlConnOpen)
 
 	//`insert into users (id, login) values ($1, $2)`
 
@@ -89,8 +74,7 @@ func (a *SQL) insertNoIDNoConflict() []byte {
 	list = append(list, q)
 	list = append(list, `_, err = conn.Exec(c, q, v.sqlTuple()...)`)
 
-	list = append(list, "return")
-	list = append(list, "}")
+	list = append(list, "return", sqlConnClose)
 
 	return []byte(strings.Join(list, "\n"))
 }

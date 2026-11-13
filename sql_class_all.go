@@ -18,14 +18,7 @@ func (a *SQL) All() []byte {
 		settings.Go.StructName,
 	))
 
-	list = append(list, `
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-		if err != nil {
-			return
-		}
-		defer conn.Release()
-	`)
+	list = append(list, sqlConnOpen)
 
 	// if fields == nil
 	ifNilFields := `if fields == nil { 
@@ -72,6 +65,6 @@ func (a *SQL) All() []byte {
 	`, settings.Go.StructName),
 	)
 
-	list = append(list, "return}")
+	list = append(list, "return", sqlConnClose)
 	return []byte(strings.Join(list, "\n"))
 }

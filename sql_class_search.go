@@ -16,12 +16,7 @@ func (a *SQL) Search() []byte {
 	s := `func (a *sqlClassName) Search(q *sqlQueryName) (res []goStruct, err error) {
 
 	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-		if err != nil {
-			return
-		}
-	defer conn.Release()
-
+	err = a.Conn(func(conn *pgxpool.Conn) (err error) {
 
 	sql, fields, values := q.Render()
 
@@ -47,6 +42,8 @@ func (a *SQL) Search() []byte {
 		res = append(res, item)
 	}
 	err = rows.Err()
+	return
+	})
 
 	return
 }`

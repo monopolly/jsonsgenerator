@@ -14,14 +14,7 @@ func (a *SQL) Delete() []byte {
 	list = append(list, "\n//delete item")
 	list = append(list, fmt.Sprintf(`func (a *%s) Delete(id any) (err error) {`, settings.SQL.Class))
 
-	list = append(list, `
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-		if err != nil {
-			return
-		}
-		defer conn.Release()
-	`)
+	list = append(list, sqlConnOpen)
 
 	incField := "id"
 	if settings.Fields.IncField != "" {
@@ -33,8 +26,7 @@ func (a *SQL) Delete() []byte {
 	`
 	q = tools.Replace(q, "tableName", settings.SQL.Table)
 	q = tools.Replace(q, "incField", incField)
-	list = append(list, q)
-	list = append(list, "}")
+	list = append(list, q, sqlConnClose)
 
 	return []byte(strings.Join(list, "\n"))
 }

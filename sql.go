@@ -44,9 +44,13 @@ func (a *SQL) Generate() []byte {
 	list = append(list, a.Has())
 	// list = append(list, a.Engine())
 	list = append(list, a.CreateTable())
+	list = append(list, a.CreateIndexes())
 	list = append(list, a.Fields())
+	list = append(list, a.Begin())
 
-	return bytes.Join(list, []byte("\n\n"))
+	// transaction versions: GetTX(tx, ctx, ...)
+	res := bytes.Join(list, []byte("\n\n"))
+	return append(res, a.TX(res)...)
 }
 
 // type AccountsSQL int

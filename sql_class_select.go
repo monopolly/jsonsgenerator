@@ -14,14 +14,7 @@ func (a *SQL) Select() []byte {
 	list = append(list, "\n//select custom sql query")
 	list = append(list, fmt.Sprintf(`func (a *%s) Select(where string, fields ...%s) (res []%s, err error) {`, settings.SQL.Class, settings.IndexTypeName, settings.Go.StructName))
 
-	list = append(list, `
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-		if err != nil {
-			return
-		}
-		defer conn.Release()
-	`)
+	list = append(list, sqlConnOpen)
 
 	// if fields == nil
 	ifNilFields := `if fields == nil {
@@ -72,7 +65,7 @@ func (a *SQL) Select() []byte {
 	// s = tools.Replace(s, "sqlClassName", settings.SQL.Class)
 	list = append(list, s)
 
-	list = append(list, "return}")
+	list = append(list, "return", sqlConnClose)
 	return []byte(strings.Join(list, "\n"))
 }
 

@@ -14,14 +14,7 @@ func (a *SQL) Updates() []byte {
 	list = append(list, "\n//update sql query")
 	list = append(list, fmt.Sprintf(`func (a *%s) Updates(id any, keys map[string]any, where ...string) (err error) {`, settings.SQL.Class))
 
-	list = append(list, `
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-		if err != nil {
-			return
-		}
-		defer conn.Release()
-	`)
+	list = append(list, sqlConnOpen)
 
 	m := `
 		if keys == nil {
@@ -57,8 +50,7 @@ func (a *SQL) Updates() []byte {
 	list = append(list, tools.Replace(`q := fmt.Sprintf("update tableName set %s where `+incField+` = $%d", list, count)`, "tableName", settings.SQL.Table))
 	list = append(list, `if len(where) > 0 {q += " and "+ where[0]}`)
 	list = append(list, `_,err = conn.Exec(c, q, values...)`)
-	list = append(list, "return")
-	list = append(list, "}")
+	list = append(list, "return", sqlConnClose)
 	return []byte(strings.Join(list, "\n"))
 }
 
@@ -69,14 +61,7 @@ func (a *SQL) UpdatesWhere() []byte {
 	list = append(list, "\n//update sql query")
 	list = append(list, fmt.Sprintf(`func (a *%s) UpdatesWhere(keys map[string]any, where string, args ...any) (err error) {`, settings.SQL.Class))
 
-	list = append(list, `
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-		if err != nil {
-			return
-		}
-		defer conn.Release()
-	`)
+	list = append(list, sqlConnOpen)
 
 	m := `
 		if keys == nil {
@@ -105,7 +90,6 @@ func (a *SQL) UpdatesWhere() []byte {
 	list = append(list, `where = fmt.Sprintf(where, args...)`)
 	list = append(list, tools.Replace(`q := fmt.Sprintf("update tableName set %s where %s", list, where)`, "tableName", settings.SQL.Table))
 	list = append(list, `_,err = conn.Exec(c, q, values...)`)
-	list = append(list, "return")
-	list = append(list, "}")
+	list = append(list, "return", sqlConnClose)
 	return []byte(strings.Join(list, "\n"))
 }

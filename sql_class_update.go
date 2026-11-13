@@ -12,14 +12,7 @@ func (a *SQL) Update() []byte {
 	list = append(list, "\n//update sql query")
 	list = append(list, fmt.Sprintf(`func (a *%s) Update(id any, k string, v any, where ...string) (err error) {`, settings.SQL.Class))
 
-	list = append(list, `
-	c := context.Background()
-	conn, err := a.pool.Acquire(c)
-		if err != nil {
-			return
-		}
-		defer conn.Release()
-	`)
+	list = append(list, sqlConnOpen)
 
 	list = append(list, fmt.Sprintf(`if !%sValidKey(k) {
 		return errors.New("invalid key")
@@ -35,8 +28,7 @@ func (a *SQL) Update() []byte {
 	list = append(list, `q := fmt.Sprintf("`+inits+` %s = $1 where `+incField+` = $2", in.SQLName())`)
 	list = append(list, `if len(where) > 0 {q += " and "+ where[0]}`)
 	list = append(list, `_,err = conn.Exec(c, q, v, id)`)
-	list = append(list, "return")
-	list = append(list, "}")
+	list = append(list, "return", sqlConnClose)
 	return []byte(strings.Join(list, "\n"))
 }
 
