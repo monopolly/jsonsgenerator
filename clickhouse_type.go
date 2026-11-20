@@ -7,10 +7,7 @@ func (a *Clickhouse) Type(t *Field) string {
 		return t.Clickhouse.Type
 	}
 
-	goType := t.Type
-	if t.Go.Type != "" {
-		goType = t.Go.Type
-	}
+	goType := t.BaseType() // role.Role > int
 
 	if strings.EqualFold(t.Name, "ip") || strings.EqualFold(t.Clickhouse.Name, "ip") {
 		t.Clickhouse.IP = true
@@ -70,6 +67,8 @@ func (a *Clickhouse) Type(t *Field) string {
 		return "Bool"
 	case "[]byte":
 		return "String"
+	case uuidType:
+		return "UUID"
 
 	// -------- time --------
 	case "time.Time":
@@ -104,6 +103,12 @@ func (a *Clickhouse) Type(t *Field) string {
 		return "Array(Float64)"
 	case "[]bool":
 		return "Array(Bool)"
+	case "[]" + uuidType:
+		return "Array(UUID)"
+	case "[]time.Time":
+		return "Array(DateTime64(3))"
+	case "[]time.Duration":
+		return "Array(Int64)"
 
 	// -------- maps --------
 	case "map[string]string":

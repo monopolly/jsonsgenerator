@@ -2,11 +2,22 @@ package news
 
 import (
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/monopolly/jsonsgenerator/test/role"
 )
+
+type Role = role.Role
 
 // go=News sql=news js=NewsJson ch=news proto ts=news swift demo enum=Category noprefix msgp gotiny
 type news struct {
 	inc int // sql{inc}  #readonly
+
+	role Role
+
+	key uuid.UUID
+	t   time.Time
+	d   time.Duration
 
 	// int types
 	ints   int

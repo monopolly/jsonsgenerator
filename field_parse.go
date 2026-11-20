@@ -52,6 +52,9 @@ func (a *Field) Parse() {
 	// go
 	a.parseGolangOptions(tools.Between(a.Comment, "go{", "}"))
 
+	// custom type: role.Role > int
+	a.parseBaseType()
+
 	// sql
 	a.parseSQLOptions(tools.Between(a.Comment, "sql{", "}"))
 
@@ -95,8 +98,8 @@ func (a *Field) Parse() {
 		settings.Fields.IncField = a.SQL.Name
 	}
 
-	if strings.Contains(a.Type, "[]") && !strings.Contains(a.Type, "byte") {
-		a.Go.ArrayType = strings.ReplaceAll(a.Type, "[]", "")
+	if t := a.GoType(); strings.Contains(t, "[]") && !strings.Contains(t, "byte") {
+		a.Go.ArrayType = strings.ReplaceAll(t, "[]", "")
 	}
 
 }

@@ -277,6 +277,13 @@ func (a *JSON) generateJsonsFunctions() []byte {
 			result = result + JSONnamefunc
 		}
 
+		// custom type role.Role, uuid.UUID: unmarshal into type
+		switch {
+		case x.Go.Base != "", strings.Contains(fieldType, uuidType),
+			fieldType == "time.Time", fieldType == "[]time.Time", fieldType == "[]time.Duration":
+			result = JSONgeneric
+		}
+
 		result = strings.ReplaceAll(result, "funcTypeMapKey", funcTypeMapKey)
 		result = strings.ReplaceAll(result, "funcTypeMapValue", funcTypeMapValue)
 		result = strings.ReplaceAll(result, "structName", settings.JS.Name)

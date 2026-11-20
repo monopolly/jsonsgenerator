@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/monopolly/cast"
@@ -17,6 +18,10 @@ func (a *Settings) Parse(in string) {
 
 	// package name "model"
 	a.PackageName = res.Package
+
+	// for custom types: role.Role
+	source.Imports = res.Imports
+	source.Dir, _ = filepath.Abs(filepath.Dir(in))
 
 	// origin struct name "news"
 	a.Origin = res.Name

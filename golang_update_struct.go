@@ -22,10 +22,10 @@ func (a *Golang) Update() []byte {
 		if x.Go.Type != "" {
 			continue
 		}
-		if !goConvertSupported(x.Type) && cast.Supported(x.Type) != nil {
+		if !goConvertSupported(x.BaseType()) && cast.Supported(x.BaseType()) != nil {
 			panic(fmt.Sprintf("cast not support type %s", x.Type))
 		}
-		parsefunc := goConvertCode(x.Go.Name, "x", x.Type)
+		parsefunc := goConvertField(x, "x")
 		// switch x.Type {
 		// case "int":
 		// 	parsefunc = fmt.Sprintf(`a.%s = cast.Int(x)`, x.Go.Name)

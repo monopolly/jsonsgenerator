@@ -10,6 +10,16 @@ func (a *Field) JsonDemo() (k string, v any) {
 	switch a.Type {
 	case "string":
 		v = "string"
+	case uuidType:
+		v = "8e1f2a4c-6b3d-4f7e-9a0c-2d5b8e1f3a6c"
+	case "time.Time":
+		v = "2026-01-15T10:30:00Z"
+	case "[]time.Time":
+		v = []string{"2026-01-15T10:30:00Z", "2026-02-20T18:00:00Z"}
+	case "[]time.Duration":
+		v = []int{rand.Intn(999999), rand.Intn(999999)}
+	case "[]" + uuidType:
+		v = []string{"8e1f2a4c-6b3d-4f7e-9a0c-2d5b8e1f3a6c", "3c7d9b2e-1a4f-4e8b-b6d0-5f2a9c3e7b1d"}
 	case "bool":
 		v = true
 	case "int8", "uint8", "int", "int64", "uint", "uint64", "time.Duration", "int16", "int32", "uint32":

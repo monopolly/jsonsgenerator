@@ -366,6 +366,13 @@ func importers() []byte {
 		}
 	}
 
+	// custom types: role.Role
+	for _, x := range fields {
+		if x.Go.BaseImport != "" {
+			imports[x.Go.BaseImport] = true
+		}
+	}
+
 	list := []string{}
 	for x := range imports {
 		switch strings.Contains(x, " ") {

@@ -6,10 +6,7 @@ import (
 
 // insert sql query
 func GoTypeToSQLType(x *Field) {
-	goType := x.Type
-	if x.Go.Type != "" {
-		goType = x.Go.Type
-	}
+	goType := x.BaseType() // role.Role > int
 
 	// detect sql type
 	switch goType {
@@ -27,6 +24,10 @@ func GoTypeToSQLType(x *Field) {
 		x.SQL.Type = "text"
 	case "[]byte", "[]int8", "[]uint8":
 		x.SQL.Type = "bytea"
+	case uuidType:
+		x.SQL.Type = "uuid"
+	case "time.Time":
+		x.SQL.Type = "timestamptz"
 	default:
 		switch {
 		case strings.HasPrefix(goType, "[]"):
@@ -60,6 +61,10 @@ func DetectSQLDefault(x *Field) {
 				x.SQL.Default.Value = "default false"
 			case "text":
 				x.SQL.Default.Value = "default ''"
+			case "uuid":
+				x.SQL.Default.Value = "default gen_random_uuid()"
+			case "timestamptz":
+				x.SQL.Default.Value = "default now()"
 			}
 		}
 	}

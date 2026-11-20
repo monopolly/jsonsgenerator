@@ -71,37 +71,39 @@ func generateTypeScript() []byte {
 	for _, x := range fields {
 
 		var tsType string
-		switch x.Type {
+		switch x.PlainType() {
 		case "int", "int64", "uint", "uint64", "time.Duration", "int16", "int32", "uint32", "int8", "uint8", "float64", "float32":
 			tsType = "number"
 		case "bool":
 			tsType = "boolean"
-		case "string":
+		case "string", uuidType, "time.Time":
 			tsType = "string"
 		default:
 			tsType = "any"
 		}
 
-		if strings.HasPrefix(x.Type, "[]") {
-			if strings.Contains(x.Type, "int") || strings.Contains(x.Type, "float") || strings.Contains(x.Type, "time") {
-				tsType = "number[]"
-			} else if strings.Contains(x.Type, "str") {
+		if strings.HasPrefix(x.PlainType(), "[]") {
+			if x.PlainType() == "[]time.Time" {
 				tsType = "string[]"
-			} else if strings.Contains(x.Type, "byte") {
+			} else if strings.Contains(x.PlainType(), "int") || strings.Contains(x.PlainType(), "float") || strings.Contains(x.PlainType(), "time") {
+				tsType = "number[]"
+			} else if strings.Contains(x.PlainType(), "str") || strings.Contains(x.PlainType(), uuidType) {
+				tsType = "string[]"
+			} else if strings.Contains(x.PlainType(), "byte") {
 				tsType = "string"
 			} else {
 				tsType = "Array<any>"
 			}
 		}
 
-		if strings.HasPrefix(x.Type, "map[") {
-			if strings.Contains(x.Type, "inter") || strings.Contains(x.Type, "any") {
+		if strings.HasPrefix(x.PlainType(), "map[") {
+			if strings.Contains(x.PlainType(), "inter") || strings.Contains(x.PlainType(), "any") {
 				tsType = "Record<string, any>"
-			} else if strings.Contains(x.Type, "int") || strings.Contains(x.Type, "float") || strings.Contains(x.Type, "time") {
+			} else if strings.Contains(x.PlainType(), "int") || strings.Contains(x.PlainType(), "float") || strings.Contains(x.PlainType(), "time") {
 				tsType = "Record<string, number>"
-			} else if strings.Contains(x.Type, "bool") {
+			} else if strings.Contains(x.PlainType(), "bool") {
 				tsType = "Record<string, boolean>"
-			} else if strings.Contains(x.Type, "string") {
+			} else if strings.Contains(x.PlainType(), "string") {
 				tsType = "Record<string, string>"
 			} else {
 				tsType = "Array<any>"

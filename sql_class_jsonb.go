@@ -212,7 +212,7 @@ func (a *SQL) updateJsonbArray(x *Field) []byte {
 	sql = tools.Replace(sql, "sqlFieldName", x.SQL.Name)
 
 	list = append(list, `//json escape`)
-	list = append(list, fmt.Sprintf("vvv, _ := jsoniter.Marshal(%s{v})", x.Type))
+	list = append(list, fmt.Sprintf("vvv, _ := jsoniter.Marshal(%s{v})", x.GoType()))
 	list = append(list, "vv := string(vvv)")
 	list = append(list, `q := "`+sql+` - $1::jsonb where `+incField+` = $2"`)
 
@@ -249,7 +249,7 @@ func (a *SQL) updateJsonbArrayWhere(x *Field) []byte {
 	// list = append(list, `q := fmt.Sprintf("`+sql+` || '%s'::jsonb where %s",  res, where)`)
 
 	list = append(list, `//json escape`)
-	list = append(list, fmt.Sprintf("vvv, _ := jsoniter.Marshal(%s{v})", x.Type))
+	list = append(list, fmt.Sprintf("vvv, _ := jsoniter.Marshal(%s{v})", x.GoType()))
 	list = append(list, "vv := string(vvv)")
 	list = append(list, `q := "`+sql+` || $1::jsonb where " + where`)
 
@@ -272,7 +272,7 @@ func (a *SQL) updateJsonbArrayWhere(x *Field) []byte {
 	sql = tools.Replace(sql, "sqlFieldName", x.SQL.Name)
 
 	list = append(list, `//json escape`)
-	list = append(list, fmt.Sprintf("vvv, _ := jsoniter.Marshal(%s{v})", x.Type))
+	list = append(list, fmt.Sprintf("vvv, _ := jsoniter.Marshal(%s{v})", x.GoType()))
 	list = append(list, "vv := string(vvv)")
 	list = append(list, `q := "`+sql+` - $1::jsonb where " + where`)
 

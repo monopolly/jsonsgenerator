@@ -80,15 +80,17 @@ func generateSwiftCode(filename ...string) []byte {
 		}
 		c++
 		var tsType string
-		switch x.Type {
+		switch x.PlainType() {
 		case "int", "int64", "uint", "uint64", "time.Duration", "int16", "int32", "uint32", "int8", "uint8":
 			tsType = "Int" + reqswift(x.Swift.Must, "= 0")
 		case "float64", "float32":
 			tsType = "Double" + reqswift(x.Swift.Must, "= 0")
 		case "bool":
 			tsType = "Bool" + reqswift(x.Swift.Must, "= false")
-		case "string", "byte":
+		case "string", "byte", uuidType, "time.Time":
 			tsType = `String` + reqswift(x.Swift.Must, `= ""`)
+		case "[]" + uuidType, "[]time.Time":
+			tsType = "[String]" + reqswift(x.Swift.Must, "= [String]()")
 		case "map[string]string":
 			tsType = "[String:String]" + reqswift(x.Swift.Must, "= [String:String]()")
 		case "map[int]string":

@@ -12,6 +12,7 @@ func (a *Field) parseGolangOptions(v string) {
 	a.Go.Must = strings.Contains(v, "must")
 	a.Go.UpperCase = strings.Contains(v, "up")
 	a.Go.Type = tools.Between(v, `type="`, `"`)
+	a.Go.Base = tools.Between(v, `base="`, `"`)
 	a.Go.Title = tools.Between(v, `title="`, `"`)
 	a.Go.Desc = tools.Between(v, `desc="`, `"`)
 
@@ -25,6 +26,7 @@ func (a *Field) parseGolangOptions(v string) {
 	helps.Golang["up"] = "Make uppercase for functions"
 	helps.Golang["must"] = "Create one validation function for all must fields"
 	helps.Golang[`type=""`] = `Replace golang type. Ex: type="[]*News"`
+	helps.Golang[`base=""`] = `Underlying type for custom type (detected automatically). Ex: role role.Role // go{base="int"}`
 	helps.Golang[`name=""`] = `Replace golang struct name. Ex: name="NewsList"`
 	helps.Golang[`title=""`] = `Add custom title for index`
 	helps.Golang[`desc=""`] = `Add custom desc for index`

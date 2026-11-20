@@ -18,7 +18,7 @@ func (a *Golang) SQLStructToTuple() []byte {
 		if x.SQL.NoInsert || x.SQL.Skip {
 			continue
 		}
-		fieldlist = append(fieldlist, fmt.Sprintf(`a.%s`, x.Go.Name))
+		fieldlist = append(fieldlist, x.GoValue())
 	}
 	lines = append(lines, fmt.Sprintf("return []any{%s}", strings.Join(fieldlist, ",")))
 	lines = append(lines, "}")
@@ -39,7 +39,7 @@ func (a *Golang) SQLAllStructToTuple() []byte {
 		if x.SQL.Skip {
 			continue
 		}
-		fieldlist = append(fieldlist, fmt.Sprintf(`a.%s`, x.Go.Name))
+		fieldlist = append(fieldlist, x.GoValue())
 	}
 	lines = append(lines, fmt.Sprintf("return []any{%s}", strings.Join(fieldlist, ",")))
 	lines = append(lines, "}")
@@ -64,7 +64,7 @@ func (a *Golang) ClickhouseStructToTuple() []byte {
 		case true:
 			fieldlist = append(fieldlist, fmt.Sprintf(`net.ParseIP(a.%s)`, x.Go.Name))
 		default:
-			fieldlist = append(fieldlist, fmt.Sprintf(`a.%s`, x.Go.Name))
+			fieldlist = append(fieldlist, x.GoValue())
 		}
 	}
 	lines = append(lines, fmt.Sprintf("return []any{%s}", strings.Join(fieldlist, ",")))

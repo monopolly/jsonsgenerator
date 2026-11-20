@@ -29,6 +29,10 @@ func (a *Golang) Valid() []byte {
 			condition = "< 1"
 		case "string":
 			condition = `== ""`
+		case uuidType:
+			condition = "== uuid.Nil"
+		case "time.Time":
+			condition = ".IsZero()"
 		case "bool":
 			condition = " == false"
 		case "any":

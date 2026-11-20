@@ -85,11 +85,7 @@ func (a *Proto) fieldType(x *Field, imports *protoImports) string {
 		return x.Proto.Type
 	}
 
-	t := x.Type
-	if x.Go.Type != "" {
-		t = x.Go.Type
-	}
-	return a.goType(t, imports)
+	return a.goType(x.BaseType(), imports) // role.Role > int
 }
 
 func (a *Proto) goType(t string, imports *protoImports) string {
@@ -183,6 +179,8 @@ func (a *Proto) scalarType(t string, imports *protoImports) string {
 		return "google.protobuf.Value"
 	case "time.Duration":
 		return "int64"
+	case uuidType:
+		return "string"
 	case "time.Time":
 		imports.timestamp = true
 		return "google.protobuf.Timestamp"

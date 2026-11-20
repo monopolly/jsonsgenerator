@@ -38,10 +38,12 @@ type Field struct {
 	}
 
 	Go struct {
-		Index     string // IndexType for ordinal index: IndexType = 0, etc.
-		Name      string // Created, ID
-		Type      string // []*List
-		ArrayType string //int
+		Index      string // IndexType for ordinal index: IndexType = 0, etc.
+		Name       string // Created, ID
+		Type       string // []*List
+		ArrayType  string //int
+		Base       string // underlying type of custom type: role.Role > int
+		BaseImport string // custom type package: github.com/x/role
 
 		Nofunc        bool
 		Func          string          //NewsAdd

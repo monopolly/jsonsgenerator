@@ -33,7 +33,7 @@ func generateJSModel() []byte {
 
 	for _, x := range fields {
 		var Type string
-		switch x.Type {
+		switch x.PlainType() {
 		case "int", "int64", "uint", "uint64", "time.Duration", "int16", "int32", "uint32", "int8", "uint8":
 			Type = "undefined"
 		case "bool":
@@ -44,9 +44,9 @@ func generateJSModel() []byte {
 			Type = "undefined"
 		default:
 			switch {
-			case strings.HasPrefix(x.Type, "[]"):
+			case strings.HasPrefix(x.PlainType(), "[]"):
 				Type = "[]"
-			case strings.HasPrefix(x.Type, "map["):
+			case strings.HasPrefix(x.PlainType(), "map["):
 				Type = "{}"
 			default:
 				Type = "undefined"
